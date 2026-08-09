@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { db } from "../../db/db";
 import type { CombatSessionKind, CombatSessionLog } from "../../db/types";
 import { isoDay, prettyDate } from "../../lib/dates";
+import { FAMILY_LABELS, TECHNIQUE_FAMILY, type TechniqueFamily } from "../../lib/combatReport";
 import { Empty, Field, Modal, Panel, SectionTitle, Stat, Tag } from "../../components/ui";
 
 const KINDS: Array<{ value: CombatSessionKind; label: string }> = [
@@ -14,22 +15,19 @@ const KINDS: Array<{ value: CombatSessionKind; label: string }> = [
   { value: "physique", label: "Physique" },
 ];
 
-const TECHNIQUES = [
-  "Jab",
-  "Direct",
-  "Crochet",
-  "Uppercut",
-  "Low kick",
-  "Middle kick",
-  "High kick",
-  "Teep",
-  "Genou",
-  "Coude",
-  "Clinch",
-  "Esquive",
-  "Blocage / check",
-  "Déplacements",
-];
+/**
+ * Techniques regroupées par famille, dans l'ordre où l'analyse les lit. Une
+ * liste plate de quatorze boutons se cochait de gauche à droite : les familles
+ * rendent visible ce qu'on est en train de ne pas cocher.
+ */
+const TECHNIQUES_BY_FAMILY = Object.entries(TECHNIQUE_FAMILY).reduce<
+  Array<[TechniqueFamily, string[]]>
+>((acc, [technique, family]) => {
+  const bucket = acc.find(([f]) => f === family);
+  if (bucket) bucket[1].push(technique);
+  else acc.push([family, [technique]]);
+  return acc;
+}, []);
 
 export function CombatSessionsTab() {
   const [logging, setLogging] = useState(false);
@@ -131,26 +129,49 @@ function CombatRow({ log }: { log: CombatSessionLog }) {
 function LogCombatModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [date, setDate] = useState(isoDay());
   const [kind, setKind] = useState<CombatSessionKind>("club");
-  const [duration, setDuration] = useState("");
-  const [rounds, setRounds] = useState("");
+  // `null` = jamais touché par l'utilisateur, donc reprenable de la dernière
+  // séance. Distinguer ce cas d'un champ vidé volontairement évite de réécrire
+  // une valeur que l'utilisateur vient d'effacer.
+  const [duration, setDuration] = useState<string | null>(null);
+  const [rounds, setRounds] = useState<string | null>(null);
   const [intensity, setIntensity] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [techniques, setTechniques] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+
+  const lastOfKind = useLiveQuery(
+    () => db.combatLogs.where("kind").equals(kind).sortBy("date").then((l) => l[l.length - 1]),
+    [kind],
+  );
+
+  /**
+   * Durée et rounds sont repris de la dernière séance du même type : un
+   * entraînement au club dure toujours à peu près pareil, et retaper « 90 »
+   * chaque semaine est de la saisie sans information. Dérivé plutôt que copié
+   * dans l'état, pour que changer de type suffise à changer la reprise.
+   */
+  const durationValue = duration ?? (lastOfKind?.durationMin ? String(lastOfKind.durationMin) : "");
+  const roundsValue = rounds ?? (lastOfKind?.rounds ? String(lastOfKind.rounds) : "");
+
+  const applyKind = (next: CombatSessionKind) => {
+    setKind(next);
+    setDuration(null);
+    setRounds(null);
+  };
 
   const submit = async () => {
     await db.combatLogs.add({
       date,
       kind,
-      durationMin: duration ? Number(duration) : undefined,
-      rounds: rounds ? Number(rounds) : undefined,
+      durationMin: durationValue ? Number(durationValue) : undefined,
+      rounds: roundsValue ? Number(roundsValue) : undefined,
       intensity,
       techniques,
       notes: notes.trim() || undefined,
     });
     setTechniques([]);
     setNotes("");
-    setDuration("");
-    setRounds("");
+    setDuration(null);
+    setRounds(null);
     onClose();
   };
 
@@ -171,7 +192,7 @@ function LogCombatModal({ open, onClose }: { open: boolean; onClose: () => void 
             {KINDS.map((k) => (
               <button
                 key={k.value}
-                onClick={() => setKind(k.value)}
+                onClick={() => applyKind(k.value)}
                 className={clsx(
                   "border py-2 font-mono text-[10px] uppercase tracking-[0.08em] transition-colors",
                   kind === k.value
@@ -191,7 +212,7 @@ function LogCombatModal({ open, onClose }: { open: boolean; onClose: () => void 
               type="number"
               inputMode="numeric"
               className="k-field"
-              value={duration}
+              value={durationValue}
               onChange={(e) => setDuration(e.target.value)}
               placeholder="90"
             />
@@ -201,7 +222,7 @@ function LogCombatModal({ open, onClose }: { open: boolean; onClose: () => void 
               type="number"
               inputMode="numeric"
               className="k-field"
-              value={rounds}
+              value={roundsValue}
               onChange={(e) => setRounds(e.target.value)}
               placeholder="5"
             />
@@ -228,26 +249,34 @@ function LogCombatModal({ open, onClose }: { open: boolean; onClose: () => void 
         </Field>
 
         <Field label="Techniques travaillées">
-          <div className="flex flex-wrap gap-1.5">
-            {TECHNIQUES.map((t) => (
-              <button
-                key={t}
-                onClick={() =>
-                  setTechniques(
-                    techniques.includes(t)
-                      ? techniques.filter((x) => x !== t)
-                      : [...techniques, t],
-                  )
-                }
-                className={clsx(
-                  "border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors",
-                  techniques.includes(t)
-                    ? "border-steel-400 bg-steel-600/25 text-bone-50"
-                    : "border-ink-700 text-bone-600",
-                )}
-              >
-                {t}
-              </button>
+          <div className="space-y-2.5">
+            {TECHNIQUES_BY_FAMILY.map(([family, list]) => (
+              <div key={family}>
+                <div className="k-label pb-1">{FAMILY_LABELS[family]}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {list.map((t) => (
+                    <button
+                      key={t}
+                      aria-pressed={techniques.includes(t)}
+                      onClick={() =>
+                        setTechniques(
+                          techniques.includes(t)
+                            ? techniques.filter((x) => x !== t)
+                            : [...techniques, t],
+                        )
+                      }
+                      className={clsx(
+                        "border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors",
+                        techniques.includes(t)
+                          ? "border-steel-400 bg-steel-600/25 text-bone-50"
+                          : "border-ink-700 text-bone-600",
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </Field>
