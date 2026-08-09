@@ -18,9 +18,15 @@ import {
 import { exerciseRecords, recordsBeatenBy, RECORD_LABELS } from "../../lib/records";
 import { demoSearchUrl } from "../../lib/videoDemo";
 import type { ExerciseRecords } from "../../lib/records";
+import { summarizeSession } from "../../lib/sessionSummary";
+import { REST_PRESETS, suggestedRestSeconds } from "../../lib/rest";
+import { useWakeLock } from "../../lib/wakeLock";
+import { hapticRecord, hapticSuccess, hapticTap } from "../../lib/haptics";
 import { Field, Modal, Panel, Tag } from "../../components/ui";
 import { Stepper } from "../../components/ui/Stepper";
 import { useRestTimer } from "../../components/ui/useRestTimer";
+import { ExercisePicker } from "./ExercisePicker";
+import { SessionDebrief } from "./SessionDebrief";
 
 const FEELINGS = [
   { value: 1, label: "Vidé" },
@@ -30,7 +36,6 @@ const FEELINGS = [
   { value: 5, label: "Fort" },
 ] as const;
 
-const REST_PRESETS = [60, 90, 120, 180];
 const NO_SETS: never[] = [];
 
 export function SessionScreen() {
@@ -41,10 +46,16 @@ export function SessionScreen() {
   const [adding, setAdding] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [confirmQuit, setConfirmQuit] = useState(false);
+  const [debriefing, setDebriefing] = useState(false);
 
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
   const allSets = useLiveQuery(() => db.workoutSets.toArray(), []) ?? NO_SETS;
   const rest = useRestTimer();
+
+  // L'écran doit rester allumé tant qu'une séance est ouverte : c'est la
+  // friction qui décide si les séries sont saisies au fil de l'eau ou reconstituées
+  // de mémoire à la fin.
+  const screenAwake = useWakeLock(draft !== null);
 
   const { cancelPendingWrite } = usePersistedDraft(draft);
 
@@ -98,6 +109,10 @@ export function SessionScreen() {
   const totalSets = draft.exercises.reduce((n, e) => n + e.sets.length, 0);
   const doneSets = draft.exercises.reduce((n, e) => n + e.sets.filter((s) => s.done).length, 0);
 
+  // Calcul volontairement non mémoïsé : il ne parcourt qu'une vingtaine de séries,
+  // et le mémoïser sur un brouillon muté à chaque frappe coûterait plus cher.
+  const summary = summarizeSession(draft, byId, baseRecords);
+
   const finish = async () => {
     setFinishing(true);
     try {
@@ -128,6 +143,8 @@ export function SessionScreen() {
 
       cancelPendingWrite();
       await clearDraft();
+      hapticSuccess();
+      setDebriefing(false);
       setDraft(null);
       navigate("/physique", { replace: true });
     } finally {
@@ -149,7 +166,12 @@ export function SessionScreen() {
               {SPLIT_LABELS[draft.splitDay]}
             </h1>
           </div>
-          <Elapsed startedAt={draft.startedAt} />
+          <div className="shrink-0 text-right">
+            <Elapsed startedAt={draft.startedAt} />
+            {screenAwake && (
+              <div className="k-label mt-0.5 !text-jade-400">Écran maintenu</div>
+            )}
+          </div>
         </div>
 
         {draft.date !== isoDay() && (
@@ -187,50 +209,36 @@ export function SessionScreen() {
               onRemove={() =>
                 patch({ exercises: draft.exercises.filter((_, j) => j !== i) })
               }
-              onSetDone={() => rest.start()}
+              onSetDone={() => rest.start(suggestedRestSeconds(exercise))}
             />
           );
         })}
       </div>
 
-      {adding ? (
-        <select
-          className="k-field mt-3 text-sm"
-          autoFocus
-          value=""
-          onChange={(e) => {
-            const id = Number(e.target.value);
-            if (id) {
-              const ex = byId.get(id);
-              patch({
-                exercises: [
-                  ...draft.exercises,
-                  {
-                    exerciseId: id,
-                    sets: Array.from({ length: ex?.defaultSets ?? 3 }, () => ({
-                      reps: "",
-                      weightKg: "",
-                      done: false,
-                    })),
-                  },
-                ],
-              });
-            }
-            setAdding(false);
-          }}
-        >
-          <option value="">Choisir un exercice…</option>
-          {available.map((ex) => (
-            <option key={ex.id} value={ex.id}>
-              {ex.name}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <button className="k-btn-ghost mt-3 w-full !text-xs" onClick={() => setAdding(true)}>
-          + Ajouter un exercice
-        </button>
-      )}
+      <button className="k-btn-ghost mt-3 w-full !text-xs" onClick={() => setAdding(true)}>
+        + Ajouter un exercice
+      </button>
+
+      <ExercisePicker
+        open={adding}
+        onClose={() => setAdding(false)}
+        exercises={available}
+        onPick={(ex) =>
+          patch({
+            exercises: [
+              ...draft.exercises,
+              {
+                exerciseId: ex.id!,
+                sets: Array.from({ length: ex.defaultSets ?? 3 }, () => ({
+                  reps: "",
+                  weightKg: "",
+                  done: false,
+                })),
+              },
+            ],
+          })
+        }
+      />
 
       <section className="mt-6 space-y-3">
         <Field label="Ressenti">
@@ -277,13 +285,22 @@ export function SessionScreen() {
             <button
               className="k-btn-primary flex-[2] !py-2"
               disabled={finishing}
-              onClick={finish}
+              onClick={() => setDebriefing(true)}
             >
-              {finishing ? "…" : "Terminer la séance"}
+              Terminer la séance
             </button>
           </div>
         </div>
       </div>
+
+      <SessionDebrief
+        open={debriefing}
+        summary={summary}
+        durationMin={sessionMinutes(draft.startedAt)}
+        saving={finishing}
+        onResume={() => setDebriefing(false)}
+        onConfirm={finish}
+      />
 
       <Modal open={confirmQuit} onClose={() => setConfirmQuit(false)} title="Abandonner la séance">
         <p className="text-sm leading-relaxed text-bone-400">
@@ -405,14 +422,29 @@ function ExerciseCard({
     // Valider une série sans chiffre reprendrait la dernière performance :
     // c'est le geste le plus courant quand on refait exactement pareil.
     const prev = last?.sets[i];
-    setSet(i, {
-      done: next,
-      reps: set.reps || (next && prev?.reps !== undefined ? String(prev.reps) : set.reps),
-      weightKg:
-        set.weightKg ||
-        (next && prev?.weightKg !== undefined ? String(prev.weightKg) : set.weightKg),
-    });
-    if (next) onSetDone();
+    const reps = set.reps || (next && prev?.reps !== undefined ? String(prev.reps) : set.reps);
+    const weightKg =
+      set.weightKg ||
+      (next && prev?.weightKg !== undefined ? String(prev.weightKg) : set.weightKg);
+
+    setSet(i, { done: next, reps, weightKg });
+
+    if (!next) return;
+
+    // Le téléphone est souvent posé à côté : la vibration confirme la validation
+    // sans qu'on ait à revenir regarder l'écran. Un record vibre différemment —
+    // c'est l'événement qu'on ne veut pas manquer sur le moment.
+    const beatsRecord =
+      records &&
+      recordsBeatenBy(
+        { reps: reps ? Number(reps) : undefined, weightKg: weightKg ? Number(weightKg) : undefined },
+        records,
+      ).length > 0;
+
+    if (beatsRecord) hapticRecord();
+    else hapticTap();
+
+    onSetDone();
   };
 
   return (

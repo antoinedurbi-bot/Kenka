@@ -9,8 +9,19 @@ const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromi
 const ctx = await browser.newContext({ ...devices["iPhone 13"] });
 const page = await ctx.newPage();
 const errors = [];
-page.on("pageerror", (e) => errors.push("PAGEERROR: " + e.message));
-page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+
+// Le blocage volontaire de main.tsx ci-dessous répond un 204 sans Content-Type :
+// le navigateur log alors une erreur de type MIME sur le script de module. Elle
+// est attendue, et la laisser remonter masquerait une vraie erreur dans le bruit.
+const EXPECTED_BLOCKED_ENTRY =
+  /Failed to load module script.*MIME type of ""/;
+
+const errors_push = (t) => {
+  if (!EXPECTED_BLOCKED_ENTRY.test(t)) errors.push(t);
+};
+
+page.on("pageerror", (e) => errors_push("PAGEERROR: " + e.message));
+page.on("console", (m) => m.type() === "error" && errors_push(m.text()));
 
 // ---- 1. Build a v1 database exactly as the shipped v1 schema would ----
 // L'entrée React est bloquée pour ce premier chargement : sinon l'app ouvre la

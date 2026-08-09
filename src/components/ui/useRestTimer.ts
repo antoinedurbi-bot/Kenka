@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { hapticAlert } from "../../lib/haptics";
 
 /**
  * Minuteur de repos partagé. Il repose sur un horodatage de fin plutôt qu'un
@@ -39,7 +40,7 @@ export function useRestTimer(defaultSeconds = 90) {
       // Son bloqué (mode silencieux) : le visuel suffit.
     }
     // Absent de Safari iOS — d'où le repli sonore et visuel.
-    navigator.vibrate?.([120, 60, 120]);
+    hapticAlert();
   }, []);
 
   const start = useCallback(

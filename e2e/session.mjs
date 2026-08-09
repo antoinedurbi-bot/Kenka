@@ -122,7 +122,24 @@ const recovered = await page.evaluate(() => {
 console.log("RECOVERED STATE:", recovered);
 
 // ---- finish and verify it lands in history ----
+// Terminer ouvre d'abord le débrief : rien n'est écrit tant qu'il n'est pas confirmé.
 await page.click('button:has-text("Terminer la séance")');
+await page.waitForTimeout(800);
+
+const debrief = await page.evaluate(async () => {
+  const { db } = await import("/src/db/db.ts");
+  const dialog = document.querySelector('[role="dialog"]');
+  return {
+    open: !!dialog,
+    showsMetrics: !!dialog?.textContent.match(/Durée/),
+    // Le débrief ne doit rien avoir enregistré avant confirmation.
+    draftStillThere: (await db.sessionDraft.get("current")) !== undefined,
+  };
+});
+console.log("DEBRIEF BEFORE CONFIRM:", debrief);
+await shot(page, "06b-debrief");
+
+await page.click('button:has-text("Enregistrer")');
 await page.waitForTimeout(2000);
 
 const saved = await page.evaluate(async () => {
@@ -152,9 +169,42 @@ await page.waitForTimeout(1000);
 await page.locator('.k-btn-primary:has-text("Démarrer")').last().click();
 await page.waitForTimeout(1500);
 
+// ---- exercise picker: la recherche doit ignorer les accents ----
+// Le sélecteur natif a été remplacé par une recherche maison : si le pliage des
+// accents casse, taper « elevations » ne trouve plus « Élévations latérales »
+// et l'ajout en cours de séance redevient impraticable.
+const exercisesBefore = await page.locator('button[aria-label^="Retirer"]').count();
+await page.click('button:has-text("Ajouter un exercice")');
+await page.waitForTimeout(600);
+
+const search = page.locator('input[aria-label="Chercher un exercice"]');
+const countResults = () => page.locator('[role="dialog"] li').count();
+
+const libraryTotal = await countResults();
+await search.fill("elevations");
+await page.waitForTimeout(400);
+const unaccented = await countResults();
+await search.fill("élévations");
+await page.waitForTimeout(400);
+const accented = await countResults();
+await shot(page, "09-picker-search");
+
+await page.locator('[role="dialog"] li button').first().click();
+await page.waitForTimeout(700);
+const exercisesAfter = await page.locator('button[aria-label^="Retirer"]').count();
+
+console.log("EXERCISE PICKER:", {
+  libraryTotal,
+  unaccented,
+  accented,
+  foldingWorks: unaccented > 0 && unaccented === accented,
+  added: exercisesAfter - exercisesBefore,
+});
+
 await page.locator('button[aria-label*="à valider"]').first().click();
 // Aucune attente : on termine dans la fenêtre de l'écriture différée.
 await page.click('button:has-text("Terminer la séance")');
+await page.click('button:has-text("Enregistrer")');
 await page.waitForTimeout(2500);
 
 const zombie = await page.evaluate(async () => {
