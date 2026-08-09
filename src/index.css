@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+@import "@fontsource/oswald/400.css";
+@import "@fontsource/oswald/500.css";
+@import "@fontsource/oswald/600.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+/*
+  KENKA — direction artistique
+  Base : encre chaude quasi-noire (sumi), pas de gris bleuté froid.
+  Accent : oxblood / sang séché — martial, sobre, jamais néon.
+  Secondaire : acier pâle pour la donnée froide (mesures, graphes).
+  Typo : Oswald condensé en capitales pour les titres (affiche de combat),
+  IBM Plex Sans pour le texte, IBM Plex Mono pour tout ce qui est chiffré.
+  Géométrie : angles nets, filets fins, aucune bulle arrondie.
+*/
+
+@theme {
+  --color-ink-950: #0b0a09;
+  --color-ink-900: #121110;
+  --color-ink-850: #171614;
+  --color-ink-800: #1d1b19;
+  --color-ink-700: #262320;
+  --color-ink-600: #35312d;
+  --color-ink-500: #4a453f;
+
+  --color-bone-50: #f4f1ea;
+  --color-bone-200: #d8d2c6;
+  --color-bone-400: #a49c8e;
+  --color-bone-600: #6f695e;
+
+  --color-blood-300: #e0656f;
+  --color-blood-400: #c8323f;
+  --color-blood-500: #a52633;
+  --color-blood-600: #8a1f2b;
+  --color-blood-900: #35090f;
+
+  --color-steel-300: #9fb2bb;
+  --color-steel-400: #6f8894;
+  --color-steel-600: #3f545e;
+
+  --color-jade-400: #6f9c78;
+  --color-gold-400: #c8933f;
+
+  --font-display: "Oswald", "Impact", sans-serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    background: var(--color-ink-950);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-ink-950);
+    color: var(--color-bone-200);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  /* Grain discret : casse le rendu "aplat numérique" sans coûter une texture. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-bone-50);
+    margin: 0;
+  }
+
+  input, select, textarea, button {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--color-ink-600); }
+}
+
+@layer components {
+  .k-label {
+    @apply font-mono text-[10px] uppercase tracking-[0.18em] text-bone-600;
+  }
+
+  .k-num {
+    @apply font-mono tabular-nums text-bone-50;
+  }
+
+  .k-panel {
+    @apply border border-ink-700 bg-ink-900;
+  }
+
+  .k-field {
+    @apply w-full border border-ink-700 bg-ink-950 px-3 py-2.5 text-bone-50
+           outline-none transition-colors placeholder:text-ink-500
+           focus:border-blood-500;
+  }
+
+  .k-btn,
+  .k-btn-primary,
+  .k-btn-ghost,
+  .k-btn-danger {
+    @apply inline-flex items-center justify-center gap-2 border px-4 py-2.5
+           font-display text-sm uppercase tracking-[0.12em] transition-colors
+           select-none active:translate-y-px disabled:opacity-40;
+  }
+
+  .k-btn-primary {
+    @apply border-blood-500 bg-blood-600 text-bone-50 hover:bg-blood-500;
+  }
+
+  .k-btn-ghost {
+    @apply border-ink-600 bg-transparent text-bone-200 hover:border-ink-500 hover:text-bone-50;
+  }
+
+  .k-btn-danger {
+    @apply border-blood-900 bg-transparent text-blood-300 hover:border-blood-600;
+  }
+
+  /* Filet diagonal utilisé pour marquer les zones inactives / repos. */
+  .k-hatch {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent 0 5px,
+      rgba(255, 255, 255, 0.025) 5px 6px
+    );
+  }
+}
+
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
