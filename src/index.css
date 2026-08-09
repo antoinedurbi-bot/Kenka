@@ -153,7 +153,103 @@
       rgba(255, 255, 255, 0.025) 5px 6px
     );
   }
+
+  /* Halo radial derrière les éléments héros (niveaux, badges gagnés). */
+  .k-glow-blood {
+    background: radial-gradient(closest-side, rgba(200, 50, 63, 0.35), transparent 70%);
+  }
+  .k-glow-steel {
+    background: radial-gradient(closest-side, rgba(111, 136, 148, 0.35), transparent 70%);
+  }
+  .k-glow-gold {
+    background: radial-gradient(closest-side, rgba(200, 147, 63, 0.35), transparent 70%);
+  }
+
+  /* Titre à effet dégradé — réservé aux nombres héros (niveau, série en cours). */
+  .k-grad-blood {
+    background: linear-gradient(135deg, #e0656f 0%, #c8323f 55%, #8a1f2b 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+  .k-grad-steel {
+    background: linear-gradient(135deg, #c7d5da 0%, #6f8894 60%, #3f545e 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+  .k-grad-gold {
+    background: linear-gradient(135deg, #e7c07f 0%, #c8933f 60%, #8f6526 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
 }
 
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* --- Motion --- */
+
+@keyframes k-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes k-pop {
+  0% { opacity: 0; transform: scale(0.9); }
+  60% { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes k-shimmer {
+  from { transform: translateX(-120%) skewX(-12deg); }
+  to { transform: translateX(220%) skewX(-12deg); }
+}
+
+@keyframes k-pulse-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.k-anim-in {
+  animation: k-fade-up 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--k-stagger, 0) * 55ms);
+}
+
+.k-anim-pop {
+  animation: k-pop 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--k-stagger, 0) * 55ms);
+}
+
+.k-anim-pulse {
+  animation: k-pulse-glow 3.2s ease-in-out infinite;
+}
+
+.k-shine {
+  position: relative;
+  overflow: hidden;
+}
+.k-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(244, 241, 234, 0.12) 45%,
+    transparent 90%
+  );
+  animation: k-shimmer 2.6s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .k-anim-in,
+  .k-anim-pop,
+  .k-anim-pulse,
+  .k-shine::after {
+    animation: none !important;
+  }
+}

@@ -1,5 +1,6 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
+import type { CSSProperties } from "react";
 import clsx from "clsx";
 import { db } from "../../db/db";
 import type { SplitDay } from "../../db/types";
@@ -14,6 +15,7 @@ import { volumeReport } from "../../lib/volume";
 import { PageHeader } from "../../components/layout/Shell";
 import { Bar, Panel, SectionTitle, Tag } from "../../components/ui";
 import { DataSafetyBanner } from "../../components/DataSafetyBanner";
+import { KanjiSeal } from "../../components/illustrations/Motifs";
 import { LevelCard } from "./LevelCard";
 import { MonthlyReview } from "./MonthlyReview";
 
@@ -90,8 +92,12 @@ export function Dashboard() {
       <DataSafetyBanner />
 
       <div className="space-y-3">
-        <LevelCard axis="toji" level={physique} kanji="体" />
-        <LevelCard axis="ippo" level={skills} kanji="闘" />
+        <div className="k-anim-in" style={{ "--k-stagger": 0 } as CSSProperties}>
+          <LevelCard axis="toji" level={physique} kanji="体" />
+        </div>
+        <div className="k-anim-in" style={{ "--k-stagger": 1 } as CSSProperties}>
+          <LevelCard axis="ippo" level={skills} kanji="闘" />
+        </div>
       </div>
 
       {load.level !== "ok" && (
@@ -162,26 +168,35 @@ export function Dashboard() {
 
         {earned.length > 0 && (
           <div className="mb-3 grid grid-cols-2 gap-2">
-            {earned.map((b) => (
-              <div
-                key={b.id}
-                className={clsx(
-                  "border px-2.5 py-2",
-                  b.axis === "toji"
-                    ? "border-blood-600/60 bg-blood-900/25"
-                    : b.axis === "ippo"
-                      ? "border-steel-600 bg-steel-600/15"
-                      : "border-gold-400/40 bg-gold-400/5",
-                )}
-              >
-                <div className="font-display text-xs uppercase tracking-[0.08em] text-bone-50">
-                  {b.name}
+            {earned.map((b, i) => {
+              const sealColor =
+                b.axis === "toji" ? "#c8323f" : b.axis === "ippo" ? "#6f8894" : "#c8933f";
+              const sealKanji = b.axis === "toji" ? "体" : b.axis === "ippo" ? "闘" : "道";
+              return (
+                <div
+                  key={b.id}
+                  style={{ "--k-stagger": i } as CSSProperties}
+                  className={clsx(
+                    "k-anim-pop k-shine relative flex items-center gap-2 overflow-hidden border px-2.5 py-2",
+                    b.axis === "toji"
+                      ? "border-blood-600/60 bg-blood-900/25"
+                      : b.axis === "ippo"
+                        ? "border-steel-600 bg-steel-600/15"
+                        : "border-gold-400/40 bg-gold-400/5",
+                  )}
+                >
+                  <KanjiSeal kanji={sealKanji} color={sealColor} className="h-8 w-8 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="font-display text-xs uppercase tracking-[0.08em] text-bone-50">
+                      {b.name}
+                    </div>
+                    <div className="mt-0.5 text-[11px] leading-tight text-bone-600">
+                      {b.description}
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-0.5 text-[11px] leading-tight text-bone-600">
-                  {b.description}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

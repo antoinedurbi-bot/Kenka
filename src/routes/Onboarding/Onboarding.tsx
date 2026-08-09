@@ -5,6 +5,7 @@ import { isoDay } from "../../lib/dates";
 import { upsertDailyWeight } from "../../lib/daily";
 import { DEFAULT_HEIGHT_CM, estimateBodyFat, TOJI_TARGET } from "../../lib/progression";
 import { Field } from "../../components/ui";
+import { FighterMark } from "../../components/illustrations/Motifs";
 
 const STEPS = ["Profil", "Mesures", "Prêt"] as const;
 
@@ -69,7 +70,12 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       </div>
 
       {step === 0 && (
-        <div className="flex-1 space-y-5">
+        <div className="k-anim-in flex-1 space-y-5">
+          <div className="relative -mx-5 -mt-2 mb-1 flex h-40 items-center justify-center overflow-hidden">
+            <div className="k-glow-blood k-anim-pulse absolute h-56 w-56 rounded-full blur-3xl" aria-hidden />
+            <FighterMark className="relative h-32 w-32 text-bone-50" color="currentColor" />
+          </div>
+
           <div>
             <h1 className="text-xl leading-tight">Deux axes, en parallèle</h1>
             <p className="mt-3 text-sm leading-relaxed text-bone-400">
@@ -103,7 +109,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       )}
 
       {step === 1 && (
-        <div className="flex-1 space-y-5">
+        <div className="k-anim-in flex-1 space-y-5">
           <div>
             <h1 className="text-xl leading-tight">Ligne de base</h1>
             <p className="mt-2 text-sm leading-relaxed text-bone-400">
@@ -173,7 +179,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       )}
 
       {step === 2 && (
-        <div className="flex-1 space-y-5">
+        <div className="k-anim-in flex-1 space-y-5">
           <div>
             <h1 className="text-xl leading-tight">Comment ça marche</h1>
             <ul className="mt-4 space-y-3">
