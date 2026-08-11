@@ -8,6 +8,7 @@ import { requestPersistentStorage } from "./lib/storage";
 import { useEnabledSections } from "./lib/sections";
 import type { SectionId } from "./lib/sections";
 import { Onboarding } from "./routes/Onboarding/Onboarding";
+import { Hub } from "./routes/Hub/Hub";
 import { Dashboard } from "./routes/Dashboard/Dashboard";
 import { Physique } from "./routes/Physique/Physique";
 import { Combat } from "./routes/Combat/Combat";
@@ -59,8 +60,11 @@ export default function App() {
       {/* Hors du Shell : pendant une séance, la navigation par onglets ne doit
           pas inviter à quitter l'écran sans terminer ou abandonner. */}
       <Route path="seance" element={<SessionScreen />} />
+      {/* Le hub est le passage obligé à chaque ouverture, hors du Shell : il
+          n'a ni bouton retour ni bandeau réglages, seulement le choix. */}
+      <Route index element={<Hub />} />
       <Route element={<Shell />}>
-        <Route index element={<Dashboard />} />
+        <Route path="base" element={<Dashboard />} />
         <Route
           path="physique"
           element={

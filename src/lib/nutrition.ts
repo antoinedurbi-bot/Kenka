@@ -96,6 +96,60 @@ export function weightSlopePerWeek(weights: DailyWeight[]): number {
   return ((n * sumXY - sumX * sumY) / denom) * 7;
 }
 
+/** Mémoire longue volontaire : réagir vite au bruit d'un jour annulerait le lissage. */
+const TREND_ALPHA = 0.15;
+
+/**
+ * Poids lissé par moyenne mobile exponentielle. La balance varie de ±1-2 kg
+ * d'un jour à l'autre selon l'hydratation et le contenu digestif — sans ce
+ * lissage, "la tendance" ne serait que ce bruit, pas un vrai changement de
+ * masse. C'est la ligne que la calibration et le graphique doivent lire, pas
+ * le poids brut du jour.
+ */
+export function trendWeight(weights: DailyWeight[]): { date: string; value: number }[] {
+  const sorted = [...weights].sort((a, b) => a.date.localeCompare(b.date));
+  const out: { date: string; value: number }[] = [];
+  let ema: number | undefined;
+  for (const w of sorted) {
+    ema = ema === undefined ? w.weightKg : ema + TREND_ALPHA * (w.weightKg - ema);
+    out.push({ date: w.date, value: Math.round(ema * 100) / 100 });
+  }
+  return out;
+}
+
+export interface RecalibrationSuggestion {
+  available: boolean;
+  liveMaintenanceKcal?: number;
+  deltaKcal?: number;
+}
+
+/** En dessous, la dérive n'est que du bruit de calibration — pas de quoi rouvrir la cible. */
+const RECALIBRATION_THRESHOLD_KCAL = 100;
+
+/**
+ * Contrairement à une calibration figée jusqu'au prochain passage manuel,
+ * l'estimation "vraie" du maintien bouge chaque jour avec les nouvelles
+ * données. On ne réécrit jamais la valeur retenue sans confirmation — mais
+ * l'app doit dire quand elle a dérivé de ce que les chiffres montrent
+ * maintenant, plutôt que de laisser une cible obsolète en silence.
+ */
+export function recalibrationSuggestion(
+  stored: number | null,
+  intake: DailyIntake[],
+  weights: DailyWeight[],
+): RecalibrationSuggestion {
+  const live = calibrateMaintenance(intake, weights);
+  if (!live.ready || live.maintenanceKcal === undefined) return { available: false };
+  if (stored === null) return { available: true, liveMaintenanceKcal: live.maintenanceKcal };
+
+  const deltaKcal = live.maintenanceKcal - stored;
+  return {
+    available: Math.abs(deltaKcal) >= RECALIBRATION_THRESHOLD_KCAL,
+    liveMaintenanceKcal: live.maintenanceKcal,
+    deltaKcal,
+  };
+}
+
 /** Moyenne des pesées d'une semaine donnée — sert au rollup automatique. */
 export function weeklyAverage(weights: DailyWeight[], weekStart: string): number | undefined {
   const inWeek = weights.filter((w) => {

@@ -24,6 +24,14 @@ export const SECTIONS: SectionDef[] = [
 
 export const ALL_SECTION_IDS: SectionId[] = SECTIONS.map((s) => s.id);
 
+/** Route de chaque axe — partagée par le hub et l'écran (pour le bouton retour). */
+export const SECTION_PATH: Record<SectionId, string> = {
+  physique: "/physique",
+  combat: "/combat",
+  photos: "/photos",
+  "glow-up": "/glow-up",
+};
+
 /** Clé de stockage partagée par l'onboarding, les réglages et la navigation. */
 export const ENABLED_SECTIONS_KEY = "enabledSections";
 

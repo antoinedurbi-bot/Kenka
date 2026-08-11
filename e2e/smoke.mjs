@@ -36,7 +36,7 @@ await page.waitForTimeout(1500);
 await shot(page, "04-dashboard");
 
 // ---------- Le déroulé d'une séance est couvert par e2e/session.mjs ----------
-await page.click('nav a[href="#/physique"]');
+await page.click('a[href="#/physique"]');
 await page.waitForTimeout(700);
 
 // ---------- VOLUME ----------
@@ -63,7 +63,10 @@ await page.waitForTimeout(400);
 await shot(page, "14-measures-protocol");
 
 // ---------- MOBILITY ----------
-await page.click('nav a[href="#/glow-up"]');
+// Pas de barre de navigation entre sections : on repasse par le hub.
+await page.click('header a[href="#/"]');
+await page.waitForTimeout(600);
+await page.click('a[href="#/glow-up"]');
 await page.waitForTimeout(800);
 await shot(page, "15-mobility");
 await page.locator('button:has-text("Relever")').first().click();

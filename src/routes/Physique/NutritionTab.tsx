@@ -5,8 +5,10 @@ import { db } from "../../db/db";
 import { isoDay, isoWeekStart, prettyDate, prettyShort } from "../../lib/dates";
 import {
   calibrateMaintenance,
+  recalibrationSuggestion,
   suggestMacros,
   suggestTarget,
+  trendWeight,
   weeklyAverage,
   weightSlopePerWeek,
   WEEKLY_GAIN_TARGET,
@@ -27,6 +29,10 @@ export function NutritionTab() {
   const target = maintenance ? suggestTarget(maintenance) : undefined;
   const latestWeight = weights[weights.length - 1]?.weightKg;
   const macros = target && latestWeight ? suggestMacros(target, latestWeight) : undefined;
+
+  const trend = trendWeight(weights);
+  const latestTrend = trend[trend.length - 1]?.value;
+  const recal = recalibrationSuggestion(maintenance, intake, weights);
 
   // Tendance sur 21 jours : assez long pour dépasser le bruit d'hydratation.
   const recent = weights.slice(-21);
@@ -77,6 +83,26 @@ export function NutritionTab() {
         </p>
       </Panel>
 
+      {recal.available && (
+        <Panel className="border-l-2 border-l-gold-400 px-3 py-3">
+          <div className="flex items-center gap-2">
+            <Tag tone="gold">Nouvelle estimation disponible</Tag>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-bone-400">
+            Les derniers jours pointent vers{" "}
+            <span className="font-mono text-bone-50">{recal.liveMaintenanceKcal} kcal</span>{" "}
+            plutôt que {maintenance} — la dérive de poids réelle s'écarte de ce que la cible
+            actuelle suppose.
+          </p>
+          <button
+            className="k-btn-ghost mt-2.5 w-full !text-xs"
+            onClick={() => setMaintenance(recal.liveMaintenanceKcal!)}
+          >
+            Mettre à jour à {recal.liveMaintenanceKcal} kcal
+          </button>
+        </Panel>
+      )}
+
       {target && (
         <div className="grid grid-cols-2 gap-2">
           <Stat label="Cible actuelle" value={target} unit="kcal" tone="blood" />
@@ -107,13 +133,25 @@ export function NutritionTab() {
 
       {weights.length >= 2 && (
         <section>
-          <SectionTitle>Poids</SectionTitle>
+          <div className="flex items-baseline justify-between gap-2">
+            <SectionTitle>Poids</SectionTitle>
+            {latestTrend !== undefined && (
+              <span className="mb-3 font-mono text-xs tabular-nums text-gold-400">
+                {latestTrend.toFixed(1)} kg lissé
+              </span>
+            )}
+          </div>
           <TrendChart
             data={weights.slice(-90).map((w) => ({ date: w.date, value: w.weightKg }))}
+            trend={trend.slice(-90)}
             unit=" kg"
             color="#9fb2bb"
             domainPad={0.5}
           />
+          <p className="mt-2 text-[11px] leading-relaxed text-bone-600">
+            Points gris : pesées brutes. Ligne dorée : tendance lissée — c'est elle qui compte
+            pour juger la vitesse de prise ou de perte, pas la pesée d'un seul jour.
+          </p>
         </section>
       )}
 

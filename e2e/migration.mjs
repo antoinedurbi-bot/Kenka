@@ -178,7 +178,7 @@ await page.click('button:has-text("Volume")');
 await page.waitForTimeout(1200);
 await page.screenshot({ path: `${OUT}/v2-volume-full.png`, fullPage: true });
 
-await page.goto(`${BASE}/#/`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/#/base`, { waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
 await page.screenshot({ path: `${OUT}/v2-dashboard-full.png`, fullPage: true });
 

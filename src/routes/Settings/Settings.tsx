@@ -232,6 +232,22 @@ export function Settings() {
       </section>
 
       <section className="mt-7">
+        <SectionTitle>Icône directe par section</SectionTitle>
+        <Panel className="px-3 py-3">
+          <p className="text-xs leading-relaxed text-bone-400">
+            iOS ne permet pas de widget d'écran d'accueil pour une app web — c'est une limite du
+            système, pas de Kenka. La solution la plus proche : ouvrir une section (ex. Physique),
+            puis refaire Partager → « Sur l'écran d'accueil » depuis <em>cette</em> page. Ça pose
+            une icône séparée qui saute directement dedans, sans repasser par l'écran de choix.
+          </p>
+          <p className="mt-2 text-[11px] leading-relaxed text-bone-600">
+            Expérimental : selon la version d'iOS, la nouvelle icône peut rouvrir l'app sur l'écran
+            de choix au lieu de la section visée. À tester après l'ajout.
+          </p>
+        </Panel>
+      </section>
+
+      <section className="mt-7">
         <SectionTitle>Zone rouge</SectionTitle>
         <button className="k-btn-danger w-full !text-xs" onClick={() => setConfirmReset(true)}>
           Effacer toutes les données

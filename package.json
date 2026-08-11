@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "icons": "node scripts/gen-icons.mjs",
-    "e2e": "node e2e/smoke.mjs && node e2e/session.mjs && node e2e/newui.mjs && node e2e/migration.mjs && node e2e/analysis.mjs && node e2e/combat.mjs && node e2e/sections.mjs && node e2e/regressions.mjs"
+    "e2e": "node e2e/smoke.mjs && node e2e/session.mjs && node e2e/newui.mjs && node e2e/migration.mjs && node e2e/analysis.mjs && node e2e/combat.mjs && node e2e/nutrition-adaptive.mjs && node e2e/sections.mjs && node e2e/regressions.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

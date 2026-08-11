@@ -26,8 +26,7 @@ const onOnboarding = await page.locator("text=/Choisis tes axes/").count();
 console.log("ONBOARDING SHOWS AXES STEP:", onOnboarding > 0);
 await shot(page, "10-onboarding-axes");
 
-// Decocher Combat et Photos : l'app doit s'ouvrir plus légère, pas juste avec
-// une préférence enregistrée qui ne change rien à l'affichage.
+// Decocher Combat et Photos.
 await page.click('button[aria-pressed]:has-text("Combat")');
 await page.click('button[aria-pressed]:has-text("Photos")');
 await page.waitForTimeout(300);
@@ -47,29 +46,51 @@ const stored = await page.evaluate(async () => {
 });
 console.log("ENABLED SECTIONS AFTER ONBOARDING:", stored);
 
-await shot(page, "11-dashboard-trimmed");
+// L'app doit s'ouvrir directement sur le hub — pas sur un tableau de bord.
+const onHub = await page.locator("text=/Qu'est-ce qu'on fait/").count();
+console.log("LANDS ON HUB AFTER ONBOARDING:", onHub > 0);
+await shot(page, "11-hub-trimmed");
 
-const nav = await page.evaluate(() => {
-  return [...document.querySelectorAll("nav a")].map((a) => a.textContent.trim());
+const tiles = await page.evaluate(() => {
+  return [...document.querySelectorAll("a[href^='#/']")].map((a) => a.textContent.trim());
 });
-console.log("BOTTOM NAV ITEMS:", nav);
+console.log("HUB TILES:", tiles);
 
-// Direct URL to a hidden section must bounce home, not render a dangling screen.
+// Un tap sur une tuile doit atterrir directement dans la section, pas dans un
+// tableau de bord intermédiaire.
+await page.click("text=Physique");
+await page.waitForTimeout(900);
+console.log("TILE TAP LANDS ON SECTION:", page.url().endsWith("/#/physique"));
+await shot(page, "12-physique-from-hub");
+
+// Depuis une section, le seul chemin retour est le bouton explicite.
+const backButton = await page.locator('header a[href="#/"]:has-text("Sections")').count();
+console.log("BACK TO HUB BUTTON PRESENT:", backButton > 0);
+await page.click('header a[href="#/"]');
+await page.waitForTimeout(600);
+console.log("BACK BUTTON RETURNS TO HUB:", page.url().endsWith("/#/"));
+
+// Direct URL to a hidden section must bounce to the hub, not render a dangling screen.
 await page.goto(`${BASE}/#/combat`, { waitUntil: "networkidle" });
 await page.waitForTimeout(1000);
-console.log("DIRECT URL TO HIDDEN SECTION REDIRECTS HOME:", page.url().endsWith("/#/"));
+console.log("DIRECT URL TO HIDDEN SECTION REDIRECTS TO HUB:", page.url().endsWith("/#/"));
 
-// Re-enable Combat from Réglages ; the nav must pick it up without a reload.
+// Re-enable Combat from Réglages ; the hub must pick it up without a reload.
 await page.goto(`${BASE}/#/reglages`, { waitUntil: "networkidle" });
 await page.waitForTimeout(1000);
 await page.click('button[aria-pressed]:has-text("Combat")');
 await page.waitForTimeout(500);
-await shot(page, "12-settings-sections");
+await shot(page, "13-settings-sections");
 
-const navAfterToggle = await page.evaluate(() => {
-  return [...document.querySelectorAll("nav a")].map((a) => a.textContent.trim());
+await page.click('header a[href="#/"]');
+await page.waitForTimeout(600);
+const tilesAfterToggle = await page.evaluate(() => {
+  return [...document.querySelectorAll("a[href^='#/']")].map((a) => a.textContent.trim());
 });
-console.log("BOTTOM NAV AFTER RE-ENABLING COMBAT:", navAfterToggle);
+console.log("HUB TILES AFTER RE-ENABLING COMBAT:", tilesAfterToggle);
+
+// Base reste accessible comme une tuile parmi les autres, pas comme l'accueil.
+console.log("BASE IS A TILE, NOT THE HOME ROUTE:", tilesAfterToggle.some((t) => t.includes("Base")));
 
 console.log("ERRORS:", errors.length ? errors : "none");
 await browser.close();

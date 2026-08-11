@@ -21,12 +21,17 @@ export function TrendChart({
   unit = "",
   target,
   domainPad = 1,
+  trend,
+  trendColor = "#c8933f",
 }: {
   data: TrendPoint[];
   color?: string;
   unit?: string;
   target?: number;
   domainPad?: number;
+  /** Seconde ligne lissée (ex. poids EMA) tracée sans points, par-dessus les mesures brutes. */
+  trend?: TrendPoint[];
+  trendColor?: string;
 }) {
   if (data.length < 2) {
     return (
@@ -36,7 +41,15 @@ export function TrendChart({
     );
   }
 
+  // Un point brut et son point lissé partagent la même date : on les fusionne
+  // par date pour que Recharts trace les deux lignes sur un seul axe X commun
+  // au lieu de deux séries désynchronisées.
+  const merged = trend
+    ? data.map((d) => ({ ...d, trendValue: trend.find((t) => t.date === d.date)?.value }))
+    : data;
+
   const values = data.map((d) => d.value);
+  if (trend) values.push(...trend.map((t) => t.value));
   if (target !== undefined) values.push(target);
   const min = Math.min(...values) - domainPad;
   const max = Math.max(...values) + domainPad;
@@ -44,7 +57,7 @@ export function TrendChart({
   return (
     <div className="h-40 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: -18 }}>
+        <LineChart data={merged} margin={{ top: 6, right: 8, bottom: 0, left: -18 }}>
           <CartesianGrid stroke="#262320" vertical={false} />
           <XAxis
             dataKey="date"
@@ -72,7 +85,7 @@ export function TrendChart({
             labelStyle={{ color: "#6f695e" }}
             itemStyle={{ color: "#f4f1ea" }}
             labelFormatter={(l) => prettyShort(String(l))}
-            formatter={(v) => [`${v}${unit}`, ""]}
+            formatter={(v, name) => [`${v}${unit}`, name === "trendValue" ? "lissé" : ""]}
           />
           {target !== undefined && (
             <ReferenceLine
@@ -92,10 +105,22 @@ export function TrendChart({
             type="monotone"
             dataKey="value"
             stroke={color}
-            strokeWidth={2}
+            strokeWidth={trend ? 1 : 2}
+            strokeOpacity={trend ? 0.45 : 1}
             dot={{ r: 2.5, fill: color, strokeWidth: 0 }}
             activeDot={{ r: 4 }}
           />
+          {trend && (
+            <Line
+              type="monotone"
+              dataKey="trendValue"
+              stroke={trendColor}
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 4 }}
+              isAnimationActive={false}
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

@@ -23,7 +23,7 @@ await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(1800);
 
 // ---- Skill tree ----
-await page.click('nav a[href="#/combat"]');
+await page.click('a[href="#/combat"]');
 await page.waitForTimeout(1200);
 await shot(page, "01-skilltree");
 
@@ -36,7 +36,10 @@ const checkedLabel = await firstNode.getAttribute("aria-label");
 console.log("FIRST NODE STATE:", checkedLabel);
 
 // ---- Reference gallery ----
-await page.click('nav a[href="#/glow-up"]');
+// Pas de barre de navigation entre sections : on repasse par le hub.
+await page.click('header a[href="#/"]');
+await page.waitForTimeout(600);
+await page.click('a[href="#/glow-up"]');
 await page.waitForTimeout(1000);
 await page.click('button:has-text("Coiffure")');
 await page.waitForTimeout(700);
@@ -58,7 +61,9 @@ const thumbCount = await page.locator('button:has(img[alt="Référence"])').coun
 console.log("REFERENCE THUMBS:", thumbCount);
 
 // ---- Video demo link ----
-await page.click('nav a[href="#/physique"]');
+await page.click('header a[href="#/"]');
+await page.waitForTimeout(600);
+await page.click('a[href="#/physique"]');
 await page.waitForTimeout(1000);
 await page.click('button:has-text("Exercices")');
 await page.waitForTimeout(600);

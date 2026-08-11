@@ -1,36 +1,21 @@
-import clsx from "clsx";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
-import { SECTIONS, useEnabledSections } from "../../lib/sections";
-import type { SectionId } from "../../lib/sections";
 
-const SECTION_PATH: Record<SectionId, string> = {
-  physique: "/physique",
-  combat: "/combat",
-  photos: "/photos",
-  "glow-up": "/glow-up",
-};
-
-const BASE_ITEM = { to: "/", label: "Base", icon: KanjiIcon("拳") };
-
-function KanjiIcon(char: string) {
-  return (
-    <span className="font-display text-[17px] leading-none" aria-hidden>
-      {char}
-    </span>
-  );
-}
-
+/**
+ * Une fois entré dans une section depuis le hub, il n'y a plus de barre du
+ * bas à lire : le seul chemin est explicite — revenir au choix, ou aller
+ * aux réglages. Ça libère aussi l'écran entier pour le contenu de la
+ * section, plutôt que de lui retirer une bande fixe en permanence.
+ */
 export function Shell() {
   const { pathname } = useLocation();
 
   return (
     <div className="relative mx-auto flex min-h-dvh max-w-3xl flex-col">
       <TopBar />
-      <main key={pathname} className="flex-1 px-4 pb-28 pt-4">
+      <main key={pathname} className="flex-1 px-4 pb-10 pt-4">
         <Outlet />
       </main>
-      <BottomNav />
     </div>
   );
 }
@@ -39,9 +24,11 @@ function TopBar() {
   return (
     <header className="safe-top sticky top-0 z-40 border-b border-ink-800 bg-ink-950/95 backdrop-blur">
       <div className="flex items-center justify-between px-4 py-3">
-        <NavLink to="/" className="flex items-baseline gap-2">
-          <span className="font-display text-lg tracking-[0.2em] text-bone-50">KENKA</span>
-          <span className="font-mono text-[10px] tracking-[0.16em] text-blood-500">喧嘩</span>
+        <NavLink
+          to="/"
+          className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-bone-600 hover:text-bone-200"
+        >
+          <span aria-hidden>←</span> Sections
         </NavLink>
         <NavLink
           to="/reglages"
@@ -51,43 +38,6 @@ function TopBar() {
         </NavLink>
       </div>
     </header>
-  );
-}
-
-function BottomNav() {
-  const [enabled] = useEnabledSections();
-  const items = [
-    BASE_ITEM,
-    ...SECTIONS.filter((s) => enabled.includes(s.id)).map((s) => ({
-      to: SECTION_PATH[s.id],
-      label: s.label,
-      icon: KanjiIcon(s.kanji),
-    })),
-  ];
-
-  return (
-    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-3xl border-t border-ink-800 bg-ink-950/97 backdrop-blur">
-      <div className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/"}
-            className={({ isActive }) =>
-              clsx(
-                "flex flex-col items-center gap-1.5 border-t-2 py-2.5 transition-colors",
-                isActive
-                  ? "border-blood-500 text-bone-50"
-                  : "border-transparent text-bone-600 hover:text-bone-400",
-              )
-            }
-          >
-            {item.icon}
-            <span className="font-mono text-[9px] uppercase tracking-[0.1em]">{item.label}</span>
-          </NavLink>
-        ))}
-      </div>
-    </nav>
   );
 }
 
