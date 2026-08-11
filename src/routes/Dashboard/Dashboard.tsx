@@ -7,6 +7,7 @@ import type { SplitDay } from "../../db/types";
 import { DEFAULT_SPLIT, SPLIT_LABELS, weekdayOf } from "../../lib/split";
 import type { Weekday } from "../../lib/split";
 import { useSetting } from "../../lib/useSetting";
+import { useEnabledSections } from "../../lib/sections";
 import { physiqueLevel, skillsLevel } from "../../lib/progression";
 import { computeBadges } from "../../lib/badges";
 import { currentWeekCount, weeklyStreak } from "../../lib/streaks";
@@ -21,6 +22,10 @@ import { MonthlyReview } from "./MonthlyReview";
 
 export function Dashboard() {
   const [split] = useSetting<Record<Weekday, SplitDay>>("split", DEFAULT_SPLIT);
+  const [enabled] = useEnabledSections();
+  const physiqueOn = enabled.includes("physique");
+  const combatOn = enabled.includes("combat");
+  const photosOn = enabled.includes("photos");
   const today = weekdayOf(new Date());
 
   const measurements = useLiveQuery(() => db.measurements.orderBy("date").toArray(), []) ?? [];
@@ -57,8 +62,14 @@ export function Dashboard() {
     workoutStreak,
     combatStreak,
   });
-  const earned = badges.filter((b) => b.earned);
-  const nextUp = badges
+  // Un badge d'un axe masqué n'a plus de section où se rendre utile ; l'y
+  // laisser reviendrait à afficher la progression d'une chose qu'on a
+  // explicitement retirée.
+  const visibleBadges = badges.filter(
+    (b) => b.axis === "meta" || (b.axis === "toji" && physiqueOn) || (b.axis === "ippo" && combatOn),
+  );
+  const earned = visibleBadges.filter((b) => b.earned);
+  const nextUp = visibleBadges
     .filter((b) => !b.earned)
     .sort((a, b) => b.progress - a.progress)
     .slice(0, 3);
@@ -91,16 +102,22 @@ export function Dashboard() {
 
       <DataSafetyBanner />
 
-      <div className="space-y-3">
-        <div className="k-anim-in" style={{ "--k-stagger": 0 } as CSSProperties}>
-          <LevelCard axis="toji" level={physique} kanji="体" />
+      {(physiqueOn || combatOn) && (
+        <div className="space-y-3">
+          {physiqueOn && (
+            <div className="k-anim-in" style={{ "--k-stagger": 0 } as CSSProperties}>
+              <LevelCard axis="toji" level={physique} kanji="体" />
+            </div>
+          )}
+          {combatOn && (
+            <div className="k-anim-in" style={{ "--k-stagger": 1 } as CSSProperties}>
+              <LevelCard axis="ippo" level={skills} kanji="闘" />
+            </div>
+          )}
         </div>
-        <div className="k-anim-in" style={{ "--k-stagger": 1 } as CSSProperties}>
-          <LevelCard axis="ippo" level={skills} kanji="闘" />
-        </div>
-      </div>
+      )}
 
-      {load.level !== "ok" && (
+      {(physiqueOn || combatOn) && load.level !== "ok" && (
         <section className="mt-5">
           <Panel
             className={clsx(
@@ -116,7 +133,7 @@ export function Dashboard() {
         </section>
       )}
 
-      {volume.verdict === "a-corriger" && (
+      {physiqueOn && volume.verdict === "a-corriger" && (
         <section className="mt-5">
           <Link to="/physique" className="block">
             <Panel className="border-l-2 border-l-blood-500 px-3 py-3">
@@ -129,32 +146,40 @@ export function Dashboard() {
         </section>
       )}
 
-      <section className="mt-7">
-        <SectionTitle>Régularité</SectionTitle>
-        <Panel className="divide-y divide-ink-800">
-          <StreakRow
-            label="Musculation"
-            streak={workoutStreak}
-            thisWeek={currentWeekCount(workoutDates)}
-            goal={3}
-            tone="blood"
-          />
-          <StreakRow
-            label="Combat"
-            streak={combatStreak}
-            thisWeek={currentWeekCount(combatDates)}
-            goal={2}
-            tone="steel"
-          />
-          <StreakRow
-            label="Pesées"
-            streak={nutritionStreak}
-            thisWeek={currentWeekCount(nutritionDates)}
-            goal={3}
-            tone="jade"
-          />
-        </Panel>
-      </section>
+      {(physiqueOn || combatOn) && (
+        <section className="mt-7">
+          <SectionTitle>Régularité</SectionTitle>
+          <Panel className="divide-y divide-ink-800">
+            {physiqueOn && (
+              <StreakRow
+                label="Musculation"
+                streak={workoutStreak}
+                thisWeek={currentWeekCount(workoutDates)}
+                goal={3}
+                tone="blood"
+              />
+            )}
+            {combatOn && (
+              <StreakRow
+                label="Combat"
+                streak={combatStreak}
+                thisWeek={currentWeekCount(combatDates)}
+                goal={2}
+                tone="steel"
+              />
+            )}
+            {physiqueOn && (
+              <StreakRow
+                label="Pesées"
+                streak={nutritionStreak}
+                thisWeek={currentWeekCount(nutritionDates)}
+                goal={3}
+                tone="jade"
+              />
+            )}
+          </Panel>
+        </section>
+      )}
 
       <section className="mt-7">
         <SectionTitle>Suivi</SectionTitle>
@@ -162,7 +187,7 @@ export function Dashboard() {
       </section>
 
       <section className="mt-7">
-        <SectionTitle action={<Tag tone="gold">{earned.length}/{badges.length}</Tag>}>
+        <SectionTitle action={<Tag tone="gold">{earned.length}/{visibleBadges.length}</Tag>}>
           Badges
         </SectionTitle>
 
@@ -220,23 +245,33 @@ export function Dashboard() {
         </Panel>
       </section>
 
-      <section className="mt-7">
-        <SectionTitle>Logger</SectionTitle>
-        <div className="grid grid-cols-2 gap-2">
-          <Link to="/physique" className="k-btn-ghost">
-            Séance muscu
-          </Link>
-          <Link to="/combat" className="k-btn-ghost">
-            Séance combat
-          </Link>
-          <Link to="/physique" className="k-btn-ghost">
-            Mesures
-          </Link>
-          <Link to="/photos" className="k-btn-ghost">
-            Photos
-          </Link>
-        </div>
-      </section>
+      {(physiqueOn || combatOn || photosOn) && (
+        <section className="mt-7">
+          <SectionTitle>Logger</SectionTitle>
+          <div className="grid grid-cols-2 gap-2">
+            {physiqueOn && (
+              <Link to="/physique" className="k-btn-ghost">
+                Séance muscu
+              </Link>
+            )}
+            {combatOn && (
+              <Link to="/combat" className="k-btn-ghost">
+                Séance combat
+              </Link>
+            )}
+            {physiqueOn && (
+              <Link to="/physique" className="k-btn-ghost">
+                Mesures
+              </Link>
+            )}
+            {photosOn && (
+              <Link to="/photos" className="k-btn-ghost">
+                Photos
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
     </>
   );
 }

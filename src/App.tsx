@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Shell } from "./components/layout/Shell";
 import { db } from "./db/db";
 import { seedIfEmpty } from "./db/seed";
 import { requestPersistentStorage } from "./lib/storage";
+import { useEnabledSections } from "./lib/sections";
+import type { SectionId } from "./lib/sections";
 import { Onboarding } from "./routes/Onboarding/Onboarding";
 import { Dashboard } from "./routes/Dashboard/Dashboard";
 import { Physique } from "./routes/Physique/Physique";
@@ -12,6 +15,17 @@ import { Photos } from "./routes/Photos/Photos";
 import { GlowUp } from "./routes/GlowUp/GlowUp";
 import { Settings } from "./routes/Settings/Settings";
 import { SessionScreen } from "./routes/Session/SessionScreen";
+
+/**
+ * Une section désactivée depuis les Réglages doit aussi fermer son URL
+ * directe — sinon un onglet gardé ouvert ou un lien favori continuerait à
+ * afficher un écran que la navigation prétend ne plus exister.
+ */
+function RequireSection({ id, children }: { id: SectionId; children: ReactNode }) {
+  const [enabled] = useEnabledSections();
+  if (!enabled.includes(id)) return <Navigate to="/" replace />;
+  return children;
+}
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -47,10 +61,38 @@ export default function App() {
       <Route path="seance" element={<SessionScreen />} />
       <Route element={<Shell />}>
         <Route index element={<Dashboard />} />
-        <Route path="physique" element={<Physique />} />
-        <Route path="combat" element={<Combat />} />
-        <Route path="photos" element={<Photos />} />
-        <Route path="glow-up" element={<GlowUp />} />
+        <Route
+          path="physique"
+          element={
+            <RequireSection id="physique">
+              <Physique />
+            </RequireSection>
+          }
+        />
+        <Route
+          path="combat"
+          element={
+            <RequireSection id="combat">
+              <Combat />
+            </RequireSection>
+          }
+        />
+        <Route
+          path="photos"
+          element={
+            <RequireSection id="photos">
+              <Photos />
+            </RequireSection>
+          }
+        />
+        <Route
+          path="glow-up"
+          element={
+            <RequireSection id="glow-up">
+              <GlowUp />
+            </RequireSection>
+          }
+        />
         <Route path="reglages" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

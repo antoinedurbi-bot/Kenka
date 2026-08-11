@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
+import clsx from "clsx";
 import { db } from "../../db/db";
 import { downloadBlob, exportBackup, importBackup } from "../../lib/backup";
 import { daysBetween, isoDay, prettyDate } from "../../lib/dates";
 import { useSetting } from "../../lib/useSetting";
 import { formatBytes, requestPersistentStorage, storageState } from "../../lib/storage";
 import type { StorageState } from "../../lib/storage";
+import { SECTIONS, useEnabledSections } from "../../lib/sections";
 import { PageHeader } from "../../components/layout/Shell";
 import { Modal, Panel, SectionTitle, Stat, Tag } from "../../components/ui";
 
@@ -75,6 +77,8 @@ export function Settings() {
         <Stat label="Mesures" value={counts?.measures ?? "—"} />
         <Stat label="Photos" value={counts?.photos ?? "—"} tone="blood" />
       </div>
+
+      <SectionsPanel />
 
       <section className="mt-7">
         <SectionTitle>État du stockage</SectionTitle>
@@ -261,5 +265,56 @@ export function Settings() {
         KENKA · usage personnel
       </p>
     </>
+  );
+}
+
+/**
+ * Décocher un axe ici le retire immédiatement de la navigation et ferme son
+ * URL directe (voir `RequireSection` dans App.tsx) — rien n'est perdu, les
+ * données restent en base et réapparaissent dès que l'axe est recoché.
+ */
+function SectionsPanel() {
+  const [enabled, setEnabled] = useEnabledSections();
+
+  const toggle = (id: (typeof SECTIONS)[number]["id"]) => {
+    void setEnabled(
+      enabled.includes(id) ? enabled.filter((s) => s !== id) : [...enabled, id],
+    );
+  };
+
+  return (
+    <section className="mt-7">
+      <SectionTitle>Sections actives</SectionTitle>
+      <p className="-mt-3 mb-3 text-xs leading-relaxed text-bone-600">
+        Décocher un axe le retire de la navigation. Rien n'est supprimé — les données restent en
+        place et reviennent dès qu'il est réactivé.
+      </p>
+      <Panel className="divide-y divide-ink-800">
+        {SECTIONS.map((s) => {
+          const on = enabled.includes(s.id);
+          return (
+            <button
+              key={s.id}
+              onClick={() => toggle(s.id)}
+              aria-pressed={on}
+              className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
+            >
+              <span
+                className={clsx("font-display text-base", on ? "text-blood-400" : "text-bone-700")}
+                aria-hidden
+              >
+                {s.kanji}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={clsx("block text-sm", on ? "text-bone-50" : "text-bone-500")}>
+                  {s.label}
+                </span>
+              </span>
+              <Tag tone={on ? "jade" : "neutral"}>{on ? "Activé" : "Masqué"}</Tag>
+            </button>
+          );
+        })}
+      </Panel>
+    </section>
   );
 }

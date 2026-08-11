@@ -1,14 +1,17 @@
 import clsx from "clsx";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
+import { SECTIONS, useEnabledSections } from "../../lib/sections";
+import type { SectionId } from "../../lib/sections";
 
-const NAV = [
-  { to: "/", label: "Base", icon: KanjiIcon("拳") },
-  { to: "/physique", label: "Physique", icon: KanjiIcon("体") },
-  { to: "/combat", label: "Combat", icon: KanjiIcon("闘") },
-  { to: "/photos", label: "Photos", icon: KanjiIcon("影") },
-  { to: "/glow-up", label: "Glow up", icon: KanjiIcon("道") },
-];
+const SECTION_PATH: Record<SectionId, string> = {
+  physique: "/physique",
+  combat: "/combat",
+  photos: "/photos",
+  "glow-up": "/glow-up",
+};
+
+const BASE_ITEM = { to: "/", label: "Base", icon: KanjiIcon("拳") };
 
 function KanjiIcon(char: string) {
   return (
@@ -52,10 +55,20 @@ function TopBar() {
 }
 
 function BottomNav() {
+  const [enabled] = useEnabledSections();
+  const items = [
+    BASE_ITEM,
+    ...SECTIONS.filter((s) => enabled.includes(s.id)).map((s) => ({
+      to: SECTION_PATH[s.id],
+      label: s.label,
+      icon: KanjiIcon(s.kanji),
+    })),
+  ];
+
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 mx-auto max-w-3xl border-t border-ink-800 bg-ink-950/97 backdrop-blur">
-      <div className="grid grid-cols-5">
-        {NAV.map((item) => (
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
+        {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

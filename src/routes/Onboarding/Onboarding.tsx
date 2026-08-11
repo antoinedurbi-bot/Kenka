@@ -6,8 +6,10 @@ import { upsertDailyWeight } from "../../lib/daily";
 import { DEFAULT_HEIGHT_CM, estimateBodyFat, TOJI_TARGET } from "../../lib/progression";
 import { Field } from "../../components/ui";
 import { FighterMark } from "../../components/illustrations/Motifs";
+import { ALL_SECTION_IDS, ENABLED_SECTIONS_KEY, SECTIONS } from "../../lib/sections";
+import type { SectionId } from "../../lib/sections";
 
-const STEPS = ["Profil", "Mesures", "Prêt"] as const;
+const STEPS = ["Axes", "Mesures", "Prêt"] as const;
 
 /**
  * Capture la ligne de base. Sans elle, l'app ouvre sur un niveau 0 vide et ne
@@ -16,10 +18,14 @@ const STEPS = ["Profil", "Mesures", "Prêt"] as const;
  */
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
+  const [sections, setSections] = useState<SectionId[]>(ALL_SECTION_IDS);
   const [heightCm, setHeightCm] = useState(String(DEFAULT_HEIGHT_CM));
   const [weightKg, setWeightKg] = useState("");
   const [m, setM] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+
+  const toggleSection = (id: SectionId) =>
+    setSections((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
 
   const num = (k: string) => (m[k] ? Number(m[k]) : undefined);
   const estimated = estimateBodyFat(num("waistCm"), num("neckCm"), Number(heightCm) || undefined);
@@ -28,6 +34,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     setSaving(true);
     try {
       await db.settings.put({ key: "heightCm", value: Number(heightCm) || DEFAULT_HEIGHT_CM });
+      await db.settings.put({ key: ENABLED_SECTIONS_KEY, value: sections });
       await db.settings.put({ key: "onboarded", value: isoDay() });
 
       if (withMeasures && (weightKg || Object.keys(m).length > 0)) {
@@ -77,20 +84,60 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           </div>
 
           <div>
-            <h1 className="text-xl leading-tight">Deux axes, en parallèle</h1>
+            <h1 className="text-xl leading-tight">Choisis tes axes</h1>
             <p className="mt-3 text-sm leading-relaxed text-bone-400">
-              <span className="text-blood-300">Toji</span> — un corps sec et fonctionnel : épaules,
-              dos, avant-bras, ceinture. Pas de volume pour le volume.
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-bone-400">
-              <span className="text-steel-300">Ippo</span> — les fondamentaux du combat, suivis par
-              checkpoints que tu valides toi-même.
-            </p>
-            <p className="mt-4 border-l border-ink-700 pl-3 text-xs leading-relaxed text-bone-600">
-              Aucune donnée ne quitte cet appareil. Pas de compte, pas de serveur, pas de
-              notification : l'app ne fait rien tant que tu ne l'ouvres pas.
+              <span className="text-blood-300">Toji</span> côté corps,{" "}
+              <span className="text-steel-300">Ippo</span> côté combat — le reste est optionnel.
+              Ce qui est décoché disparaît de la navigation ; tout se change plus tard depuis les
+              Réglages.
             </p>
           </div>
+
+          <div className="space-y-2">
+            {SECTIONS.map((s) => {
+              const on = sections.includes(s.id);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => toggleSection(s.id)}
+                  aria-pressed={on}
+                  className={clsx(
+                    "flex w-full items-center gap-3 border px-3 py-2.5 text-left transition-colors",
+                    on ? "border-blood-500 bg-blood-900/30" : "border-ink-700",
+                  )}
+                >
+                  <span
+                    className={clsx(
+                      "font-display text-lg",
+                      on ? "text-blood-400" : "text-bone-700",
+                    )}
+                    aria-hidden
+                  >
+                    {s.kanji}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={clsx("block text-sm", on ? "text-bone-50" : "text-bone-500")}>
+                      {s.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-bone-600">{s.blurb}</span>
+                  </span>
+                  <span
+                    className={clsx(
+                      "flex h-5 w-5 shrink-0 items-center justify-center border font-mono text-[10px]",
+                      on ? "border-blood-400 bg-blood-600 text-bone-50" : "border-ink-600",
+                    )}
+                  >
+                    {on ? "✓" : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="border-l border-ink-700 pl-3 text-xs leading-relaxed text-bone-600">
+            Aucune donnée ne quitte cet appareil. Pas de compte, pas de serveur, pas de
+            notification : l'app ne fait rien tant que tu ne l'ouvres pas.
+          </p>
 
           <Field label="Taille (cm)" hint="Sert à estimer la masse grasse.">
             <input
