@@ -12,9 +12,11 @@ import { Hub } from "./routes/Hub/Hub";
 import { Dashboard } from "./routes/Dashboard/Dashboard";
 import { Physique } from "./routes/Physique/Physique";
 import { Combat } from "./routes/Combat/Combat";
+import { NutritionPage } from "./routes/Nutrition/NutritionPage";
 import { Photos } from "./routes/Photos/Photos";
 import { GlowUp } from "./routes/GlowUp/GlowUp";
 import { Settings } from "./routes/Settings/Settings";
+import { Chat } from "./routes/Chat/Chat";
 import { SessionScreen } from "./routes/Session/SessionScreen";
 
 /**
@@ -82,6 +84,14 @@ export default function App() {
           }
         />
         <Route
+          path="nutrition"
+          element={
+            <RequireSection id="nutrition">
+              <NutritionPage />
+            </RequireSection>
+          }
+        />
+        <Route
           path="photos"
           element={
             <RequireSection id="photos">
@@ -97,6 +107,7 @@ export default function App() {
             </RequireSection>
           }
         />
+        <Route path="chat" element={<Chat />} />
         <Route path="reglages" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

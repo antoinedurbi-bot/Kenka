@@ -5,17 +5,17 @@ import { SplitTab } from "./SplitTab";
 import { SessionsTab } from "./SessionsTab";
 import { LibraryTab } from "./LibraryTab";
 import { MeasuresTab } from "./MeasuresTab";
-import { NutritionTab } from "./NutritionTab";
 import { VolumeTab } from "./VolumeTab";
 
-type Tab = "split" | "seances" | "volume" | "biblio" | "mesures" | "nutrition";
+type Tab = "split" | "seances" | "volume" | "biblio" | "mesures";
 
+/** Nutrition a sa propre tuile dans le hub — voir routes/Nutrition/NutritionPage.tsx. */
 export function Physique() {
   const [tab, setTab] = useState<Tab>("split");
 
   return (
     <>
-      <PageHeader eyebrow="Axe I — Toji" title="Physique">
+      <PageHeader eyebrow="Axe I — Toji" title="Muscu">
         Corps d'assassin : sec, découpé, fonctionnel. Épaules, dos, avant-bras, abdos —
         pas de volume pour le volume.
       </PageHeader>
@@ -29,7 +29,6 @@ export function Physique() {
           { value: "volume", label: "Volume" },
           { value: "biblio", label: "Exercices" },
           { value: "mesures", label: "Mesures" },
-          { value: "nutrition", label: "Nutrition" },
         ]}
       />
 
@@ -38,7 +37,6 @@ export function Physique() {
       {tab === "volume" && <VolumeTab />}
       {tab === "biblio" && <LibraryTab />}
       {tab === "mesures" && <MeasuresTab />}
-      {tab === "nutrition" && <NutritionTab />}
     </>
   );
 }

@@ -25,6 +25,7 @@ export function Dashboard() {
   const [enabled] = useEnabledSections();
   const physiqueOn = enabled.includes("physique");
   const combatOn = enabled.includes("combat");
+  const nutritionOn = enabled.includes("nutrition");
   const photosOn = enabled.includes("photos");
   const today = weekdayOf(new Date());
 
@@ -245,7 +246,7 @@ export function Dashboard() {
         </Panel>
       </section>
 
-      {(physiqueOn || combatOn || photosOn) && (
+      {(physiqueOn || combatOn || photosOn || nutritionOn) && (
         <section className="mt-7">
           <SectionTitle>Logger</SectionTitle>
           <div className="grid grid-cols-2 gap-2">
@@ -267,6 +268,11 @@ export function Dashboard() {
             {photosOn && (
               <Link to="/photos" className="k-btn-ghost">
                 Photos
+              </Link>
+            )}
+            {nutritionOn && (
+              <Link to="/nutrition" className="k-btn-ghost">
+                Nutrition
               </Link>
             )}
           </div>

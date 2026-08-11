@@ -104,7 +104,7 @@ await page.click('button:has-text("Volume")');
 await page.waitForTimeout(1200);
 await page.screenshot({ path: `${OUT}/v2-volume-full.png`, fullPage: true });
 
-await page.click('button:has-text("Nutrition")');
+await page.goto(`${BASE}/#/nutrition`, { waitUntil: "networkidle" });
 await page.waitForTimeout(1000);
 await page.screenshot({ path: `${OUT}/v2-nutrition-full.png`, fullPage: true });
 await page.locator('button:has-text("Calibrer")').click();

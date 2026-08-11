@@ -1,17 +1,47 @@
+import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import { db } from "../../db/db";
 import { SECTION_PATH, SECTIONS, useEnabledSections } from "../../lib/sections";
-import { SPLIT_LABELS } from "../../lib/split";
+import {
+  DEFAULT_SPLIT,
+  LOGGABLE_SPLIT_DAYS,
+  SPLIT_LABELS,
+  weekdayOf,
+} from "../../lib/split";
+import type { Weekday } from "../../lib/split";
+import type { Exercise, SplitDay } from "../../db/types";
+import { useSetting } from "../../lib/useSetting";
+import { sessionTemplate } from "../../lib/performance";
+import { startDraft } from "../../lib/sessionDraft";
+import { isoDay } from "../../lib/dates";
+import { useCoachingContext, dailyTip } from "../../lib/coaching";
 import { KanjiSeal } from "../../components/illustrations/Motifs";
+import { Tag } from "../../components/ui";
 
 const BASE_TILE = {
   to: "/base",
   label: "Base",
   kanji: "拳",
   blurb: "Niveaux, régularité, badges — l'état général.",
+};
+
+const NO_EXERCISES: Exercise[] = [];
+
+const CHAT_TILE = {
+  to: "/chat",
+  label: "Chat",
+  kanji: "話",
+  blurb: "Coach IA — questions sur ta progression.",
+};
+
+const TIP_TONE_CLASS = {
+  blood: "border-l-blood-500",
+  gold: "border-l-gold-400",
+  jade: "border-l-jade-400",
+  steel: "border-l-steel-400",
 };
 
 /**
@@ -23,6 +53,8 @@ const BASE_TILE = {
 export function Hub() {
   const [enabled] = useEnabledSections();
   const draft = useLiveQuery(() => db.sessionDraft.get("current"), []);
+  const ctx = useCoachingContext();
+  const tip = dailyTip(ctx, enabled);
 
   const tiles = [
     BASE_TILE,
@@ -32,11 +64,12 @@ export function Hub() {
       kanji: s.kanji,
       blurb: s.blurb,
     })),
+    CHAT_TILE,
   ];
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5 py-8">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-7 flex items-center justify-between">
         <div className="flex items-baseline gap-2">
           <span className="font-display text-xl tracking-[0.2em] text-bone-50">KENKA</span>
           <span className="font-mono text-[10px] tracking-[0.16em] text-blood-500">喧嘩</span>
@@ -49,7 +82,7 @@ export function Hub() {
         </Link>
       </div>
 
-      {draft && (
+      {draft ? (
         <Link
           to="/seance"
           className="k-anim-in mb-5 block border border-blood-500 bg-blood-900/30 px-3 py-3 transition-colors hover:border-blood-400"
@@ -66,9 +99,26 @@ export function Hub() {
             <span className="font-mono text-bone-300">→</span>
           </div>
         </Link>
+      ) : (
+        <TodaySessionCard physiqueOn={enabled.includes("physique")} combatOn={enabled.includes("combat")} />
       )}
 
-      <p className="mb-6 text-sm leading-relaxed text-bone-400">Qu'est-ce qu'on fait ?</p>
+      <div className={clsx("k-anim-in mb-6 border-l-2 px-3 py-2.5", TIP_TONE_CLASS[tip.tone])}>
+        <div className="k-label">Conseil</div>
+        {tip.to ? (
+          <Link to={tip.to} className="mt-1 block">
+            <div className="text-sm text-bone-50">{tip.headline}</div>
+            <p className="mt-1 text-xs leading-relaxed text-bone-400">{tip.detail}</p>
+          </Link>
+        ) : (
+          <>
+            <div className="mt-1 text-sm text-bone-50">{tip.headline}</div>
+            <p className="mt-1 text-xs leading-relaxed text-bone-400">{tip.detail}</p>
+          </>
+        )}
+      </div>
+
+      <p className="mb-3 text-sm leading-relaxed text-bone-400">Qu'est-ce qu'on fait ?</p>
 
       <div className="flex-1 space-y-2.5">
         {tiles.map((tile, i) => (
@@ -98,6 +148,90 @@ export function Hub() {
           </Link>
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * La séance du jour en grand, avant même les tuiles : c'est la raison la
+ * plus fréquente d'ouvrir l'app, elle ne mérite pas d'être noyée dans une
+ * liste de sections au même niveau que « Photos ».
+ */
+function TodaySessionCard({ physiqueOn, combatOn }: { physiqueOn: boolean; combatOn: boolean }) {
+  const navigate = useNavigate();
+  const [split] = useSetting<Record<Weekday, SplitDay>>("split", DEFAULT_SPLIT);
+  const exercises = useLiveQuery(() => db.exercises.toArray(), []) ?? NO_EXERCISES;
+  const [starting, setStarting] = useState(false);
+
+  const today = weekdayOf(new Date());
+  const splitDay = split[today];
+  const isMuscuDay = physiqueOn && LOGGABLE_SPLIT_DAYS.includes(splitDay);
+  const isCombatDay = combatOn && splitDay === "muaythai";
+
+  const planned = useMemo(
+    () => exercises.filter((e) => e.splitDays.includes(splitDay)),
+    [exercises, splitDay],
+  );
+
+  const begin = async () => {
+    setStarting(true);
+    try {
+      const template = await sessionTemplate(splitDay, planned);
+      await startDraft({
+        date: isoDay(),
+        splitDay,
+        fromHistory: template.some((t) => t.fromHistory),
+        exercises: template.map((t) => ({
+          exerciseId: t.exerciseId,
+          sets: Array.from({ length: t.sets }, () => ({ reps: "", weightKg: "", done: false })),
+        })),
+      });
+      navigate("/seance");
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  return (
+    <div className="k-anim-in mb-5 border border-ink-700 bg-ink-950 px-4 py-5">
+      <div className="k-label text-blood-500">Aujourd'hui</div>
+      <div className="mt-1 font-display text-2xl uppercase tracking-[0.04em] text-bone-50">
+        {SPLIT_LABELS[splitDay]}
+      </div>
+
+      {isMuscuDay && (
+        <>
+          <p className="mt-1.5 text-xs text-bone-600">
+            {planned.length} exercice{planned.length > 1 ? "s" : ""} au programme.
+          </p>
+          <button
+            className="k-btn-primary mt-4 w-full !text-base"
+            disabled={starting || planned.length === 0}
+            onClick={begin}
+          >
+            {starting ? "…" : "Commencer la séance"}
+          </button>
+        </>
+      )}
+
+      {isCombatDay && (
+        <>
+          <p className="mt-1.5 text-xs text-bone-600">
+            Séance combat — se logge depuis l'axe Combat, séries et charges n'y sont pas
+            applicables.
+          </p>
+          <Link
+            to="/combat"
+            className="k-btn-primary mt-4 block w-full text-center !text-base no-underline"
+          >
+            Aller à Combat
+          </Link>
+        </>
+      )}
+
+      {!isMuscuDay && !isCombatDay && (
+        <Tag tone="neutral">Repos ou axe masqué — rien à démarrer aujourd'hui</Tag>
+      )}
     </div>
   );
 }

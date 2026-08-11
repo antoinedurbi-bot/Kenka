@@ -2,6 +2,7 @@ import Dexie, { type Table } from "dexie";
 import type {
   AppSetting,
   BodyMeasurement,
+  ChatMessage,
   CombatAssessment,
   CombatCheckpoint,
   CombatSessionLog,
@@ -37,6 +38,7 @@ export class KenkaDB extends Dexie {
   settings!: Table<AppSetting, string>;
   sessionDraft!: Table<SessionDraft, string>;
   referenceImages!: Table<ReferenceImage, number>;
+  chatMessages!: Table<ChatMessage, number>;
 
   constructor() {
     super("kenka");
@@ -81,6 +83,8 @@ export class KenkaDB extends Dexie {
     this.version(3).stores({ sessionDraft: "id" });
 
     this.version(4).stores({ referenceImages: "++id, category, order" });
+
+    this.version(5).stores({ chatMessages: "++id, createdAt" });
   }
 }
 

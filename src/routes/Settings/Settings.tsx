@@ -8,8 +8,9 @@ import { useSetting } from "../../lib/useSetting";
 import { formatBytes, requestPersistentStorage, storageState } from "../../lib/storage";
 import type { StorageState } from "../../lib/storage";
 import { SECTIONS, useEnabledSections } from "../../lib/sections";
+import { OPENROUTER_MODELS } from "../../lib/openrouter";
 import { PageHeader } from "../../components/layout/Shell";
-import { Modal, Panel, SectionTitle, Stat, Tag } from "../../components/ui";
+import { Field, Modal, Panel, SectionTitle, Stat, Tag } from "../../components/ui";
 
 export function Settings() {
   const [busy, setBusy] = useState<string | null>(null);
@@ -79,6 +80,8 @@ export function Settings() {
       </div>
 
       <SectionsPanel />
+
+      <AssistantPanel />
 
       <section className="mt-7">
         <SectionTitle>État du stockage</SectionTitle>
@@ -330,6 +333,74 @@ function SectionsPanel() {
             </button>
           );
         })}
+      </Panel>
+    </section>
+  );
+}
+
+/**
+ * La seule fonctionnalité de Kenka qui a besoin du réseau. La clé reste en
+ * local (IndexedDB) et ne part que vers OpenRouter au moment d'une question
+ * — jamais vers un serveur Kenka, puisqu'il n'y en a pas.
+ */
+function AssistantPanel() {
+  const [apiKey, setApiKey, apiKeyLoaded] = useSetting<string>("openrouterApiKey", "");
+  const [model, setModel] = useSetting<string>("openrouterModel", OPENROUTER_MODELS[0].id);
+  const [reveal, setReveal] = useState(false);
+  const [draftKey, setDraftKey] = useState("");
+  const [synced, setSynced] = useState(false);
+
+  // useSetting résout la valeur stockée de façon asynchrone (useLiveQuery) :
+  // sans cette synchronisation différée, le champ afficherait une clé vide le
+  // temps du premier chargement, avant de se remplir sous les yeux.
+  useEffect(() => {
+    if (apiKeyLoaded && !synced) {
+      setDraftKey(apiKey);
+      setSynced(true);
+    }
+  }, [apiKeyLoaded, apiKey, synced]);
+
+  return (
+    <section className="mt-7">
+      <SectionTitle>Assistant IA</SectionTitle>
+      <p className="-mt-3 mb-3 text-xs leading-relaxed text-bone-600">
+        Coach en chat, via OpenRouter. Nécessite ta propre clé API — la clé et les messages
+        restent sur cet appareil, seule la question envoyée part vers OpenRouter.
+      </p>
+      <Panel className="space-y-3 px-3 py-3">
+        <Field label="Clé API OpenRouter" hint="Créée sur openrouter.ai/keys.">
+          <div className="flex gap-2">
+            <input
+              type={reveal ? "text" : "password"}
+              className="k-field flex-1"
+              value={draftKey}
+              onChange={(e) => setDraftKey(e.target.value)}
+              onBlur={() => void setApiKey(draftKey.trim())}
+              placeholder="sk-or-…"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <button
+              type="button"
+              className="k-btn-ghost shrink-0 !px-2.5 !text-[10px]"
+              onClick={() => setReveal((r) => !r)}
+            >
+              {reveal ? "Masquer" : "Afficher"}
+            </button>
+          </div>
+        </Field>
+
+        <Field label="Modèle">
+          <select className="k-field" value={model} onChange={(e) => void setModel(e.target.value)}>
+            {OPENROUTER_MODELS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Tag tone={apiKey ? "jade" : "neutral"}>{apiKey ? "Clé enregistrée" : "Aucune clé"}</Tag>
       </Panel>
     </section>
   );

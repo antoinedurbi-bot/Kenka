@@ -58,7 +58,7 @@ console.log("HUB TILES:", tiles);
 
 // Un tap sur une tuile doit atterrir directement dans la section, pas dans un
 // tableau de bord intermédiaire.
-await page.click("text=Physique");
+await page.click("text=Muscu");
 await page.waitForTimeout(900);
 console.log("TILE TAP LANDS ON SECTION:", page.url().endsWith("/#/physique"));
 await shot(page, "12-physique-from-hub");

@@ -45,7 +45,8 @@ await page.waitForTimeout(900);
 await shot(page, "11-volume");
 
 // ---------- NUTRITION ----------
-await page.click('button:has-text("Nutrition")');
+// Nutrition a sa propre tuile depuis le hub, plus une route dédiée.
+await page.goto(`${BASE}/#/nutrition`, { waitUntil: "networkidle" });
 await page.waitForTimeout(800);
 await shot(page, "12-nutrition");
 const kcalPlus = page.locator('button[aria-label="Apport calorique du jour : augmenter"]');
@@ -56,6 +57,8 @@ await page.waitForTimeout(700);
 await shot(page, "13-nutrition-logged");
 
 // ---------- MEASURES ----------
+await page.goto(`${BASE}/#/physique`, { waitUntil: "networkidle" });
+await page.waitForTimeout(700);
 await page.click('button:has-text("Mesures")');
 await page.waitForTimeout(800);
 await page.click('button:has-text("Protocole de mesure")');

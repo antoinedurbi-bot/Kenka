@@ -233,6 +233,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
               {[
                 ["Séances", "La séance du jour est déjà pré-remplie depuis ton split, avec tes charges de la dernière fois."],
                 ["Volume", "L'onglet Volume vérifie que le travail va bien aux épaules et au dos plutôt qu'aux pecs et aux bras."],
+                ["Nutrition", "Le maintien se mesure sur tes propres chiffres, pas une formule théorique — pesée et apport suffisent."],
                 ["Mesures", "Une mesure toutes les deux semaines suffit. Le niveau est lissé sur les 3 dernières."],
                 ["Photos", "Une session par semaine, mêmes conditions. Rien n'est retouché."],
                 ["Sauvegarde", "Exporter régulièrement depuis les Réglages : il n'y a pas de cloud."],

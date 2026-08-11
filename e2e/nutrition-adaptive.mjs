@@ -87,10 +87,8 @@ await page.evaluate(async () => {
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
 
-await page.goto(`${BASE}/#/physique`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/#/nutrition`, { waitUntil: "networkidle" });
 await page.waitForTimeout(1000);
-await page.click('button:has-text("Nutrition")');
-await page.waitForTimeout(900);
 await shot(page, "01-nutrition");
 
 const rendered = await page.evaluate(() => ({

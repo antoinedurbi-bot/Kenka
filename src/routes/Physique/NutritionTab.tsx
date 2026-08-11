@@ -57,8 +57,6 @@ export function NutritionTab() {
 
   return (
     <div className="space-y-6">
-      <SectionTitle>Nutrition</SectionTitle>
-
       <QuickEntry />
 
       <Panel className="px-3 py-3">
