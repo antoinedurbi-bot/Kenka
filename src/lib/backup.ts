@@ -25,6 +25,7 @@ const TABLES = [
   "combatLogs",
   "glowUp",
   "settings",
+  "chatMessages",
 ] as const;
 
 const blobToDataUrl = (blob: Blob) =>

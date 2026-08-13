@@ -166,7 +166,15 @@ await page.click('button:has-text("Séances")');
 await page.waitForTimeout(500);
 await page.click('button:has-text("Démarrer")');
 await page.waitForTimeout(1000);
-await page.locator('.k-btn-primary:has-text("Démarrer")').last().click();
+// Forcer Legs : ce jour n'inclut aucun exercice "Élévations", donc le test de
+// recherche ci-dessous trouve toujours des résultats quel que soit le jour réel
+// où tourne le test (Push/Pull incluent tous deux ces exercices par design —
+// épaules avant et arrière — ce qui viderait la recherche selon le jour).
+await page.selectOption('select:near(:text("Séance"))', "legs").catch(() => {});
+await page.waitForTimeout(500);
+await page.click('button:has-text("Démarrer"):below(:text("Composition"))').catch(async () => {
+  await page.locator('.k-btn-primary:has-text("Démarrer")').last().click();
+});
 await page.waitForTimeout(1500);
 
 // ---- exercise picker: la recherche doit ignorer les accents ----
