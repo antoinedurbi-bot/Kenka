@@ -11,16 +11,12 @@ import { ReferenceGallery } from "./ReferenceGallery";
 /** Catégories où une référence visuelle a du sens — pas la peau ni la mobilité. */
 const VISUAL_CATEGORIES: GlowUpCategory[] = ["coiffure", "posture", "style"];
 
-const CATEGORIES: Array<{ value: GlowUpCategory; label: string; blurb: string }> = [
-  {
-    value: "mobilite",
-    label: "Mobilité",
-    blurb: "Point faible identifié. Travail articulaire actif, pas seulement du stretching passif.",
-  },
-  { value: "peau", label: "Peau", blurb: "Routines simples, tenues sur la durée." },
-  { value: "coiffure", label: "Coiffure", blurb: "Référence Toji : mi-long, attaché ou lâché." },
-  { value: "posture", label: "Posture", blurb: "Diagnostic et correctifs — c'est aussi de la performance." },
-  { value: "style", label: "Style", blurb: "La coupe avant la marque." },
+const CATEGORIES: Array<{ value: GlowUpCategory; label: string; blurb: string; kanji: string }> = [
+  { value: "mobilite", label: "Mobilité", blurb: "Travail articulaire actif, pas du stretching passif.", kanji: "動" },
+  { value: "peau", label: "Peau", blurb: "Routines simples, tenues sur la durée.", kanji: "肌" },
+  { value: "coiffure", label: "Coiffure", blurb: "Référence Toji : mi-long, attaché ou lâché.", kanji: "髪" },
+  { value: "posture", label: "Posture", blurb: "Diagnostic et correctifs.", kanji: "姿" },
+  { value: "style", label: "Style", blurb: "La coupe avant la marque.", kanji: "装" },
 ];
 
 export function GlowUp() {
@@ -70,6 +66,7 @@ export function GlowUp() {
         <FichesView
           label={current.label}
           blurb={current.blurb}
+          kanji={current.kanji}
           entries={entries}
           onAdd={() => setAdding(true)}
           category={tab}
@@ -84,12 +81,14 @@ export function GlowUp() {
 function FichesView({
   label,
   blurb,
+  kanji,
   entries,
   onAdd,
   category,
 }: {
   label: string;
   blurb: string;
+  kanji: string;
   entries: GlowUpEntry[];
   onAdd: () => void;
   category: GlowUpCategory;
@@ -107,14 +106,14 @@ function FichesView({
       >
         {label}
       </SectionTitle>
-      <p className="-mt-1 mb-4 text-xs leading-relaxed text-bone-600">{blurb}</p>
+      <p className="-mt-1 mb-4 text-xs text-bone-600">{blurb}</p>
 
       {entries.length === 0 ? (
         <Empty>Aucune fiche dans cette catégorie.</Empty>
       ) : (
         <div className="space-y-3">
           {entries.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} />
+            <EntryCard key={entry.id} entry={entry} kanji={kanji} />
           ))}
         </div>
       )}
@@ -122,17 +121,28 @@ function FichesView({
   );
 }
 
-function EntryCard({ entry }: { entry: GlowUpEntry }) {
+function EntryCard({ entry, kanji }: { entry: GlowUpEntry; kanji: string }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
 
   return (
     <Panel>
       <button
-        className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left"
+        className="flex w-full items-center gap-3 px-3 py-3 text-left"
         onClick={() => setOpen(!open)}
       >
-        <h3 className="text-sm leading-tight">{entry.title}</h3>
+        <span
+          className="flex h-8 w-8 shrink-0 items-center justify-center border border-ink-700 font-display text-sm text-blood-500"
+          aria-hidden
+        >
+          {kanji}
+        </span>
+        <span className="min-w-0 flex-1">
+          <h3 className="truncate text-sm leading-tight">{entry.title}</h3>
+          {!open && entry.content && (
+            <p className="mt-0.5 truncate text-xs text-bone-600">{entry.content}</p>
+          )}
+        </span>
         <span className="shrink-0 font-mono text-xs text-bone-600">{open ? "−" : "+"}</span>
       </button>
 

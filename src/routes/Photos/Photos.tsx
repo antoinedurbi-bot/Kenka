@@ -212,11 +212,7 @@ function Compare({ photos }: { photos: ProgressPhoto[] }) {
       </div>
 
       <Panel className="px-3 py-3">
-        <p className="text-xs leading-relaxed text-bone-600">
-          Aucune retouche, aucun filtre, aucune superposition n'est appliquée à ces images. Le
-          progrès affiché ailleurs dans l'app vient uniquement des mesures saisies, jamais d'une
-          analyse d'image.
-        </p>
+        <p className="text-xs text-bone-600">Aucune retouche, aucun filtre — comparaison brute.</p>
       </Panel>
     </div>
   );

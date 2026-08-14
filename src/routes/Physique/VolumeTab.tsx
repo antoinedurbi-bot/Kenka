@@ -25,11 +25,7 @@ export function VolumeTab() {
   return (
     <div className="space-y-5">
       <SectionTitle>Répartition du volume</SectionTitle>
-      <p className="-mt-3 text-xs leading-relaxed text-bone-600">
-        La silhouette Toji se décide ici : le volume doit aller aux épaules, au dos et à la
-        ceinture, pas aux pecs et aux bras. Une série comptant plusieurs zones est comptée dans
-        chacune.
-      </p>
+      <p className="-mt-3 text-xs text-bone-600">Le volume doit aller aux épaules et au dos, pas aux pecs et aux bras.</p>
 
       <div className="flex gap-1">
         {WINDOWS.map((w) => (
@@ -133,10 +129,7 @@ function PlateauSection({ exercises }: { exercises: Exercise[] }) {
   return (
     <section>
       <SectionTitle>Plafonds détectés</SectionTitle>
-      <p className="-mt-1 mb-3 text-xs leading-relaxed text-bone-600">
-        Même charge et pas de gain de volume sur les 3 dernières séances. Avec des haltères à
-        10 kg c'est attendu — le progrès doit alors venir d'un autre levier.
-      </p>
+      <p className="-mt-1 mb-3 text-xs text-bone-600">Même charge, 3 séances sans progrès.</p>
       <Panel className="divide-y divide-ink-800">
         {plateaus.map(({ exercise, verdict }) => (
           <div key={exercise.id} className="px-3 py-2.5">

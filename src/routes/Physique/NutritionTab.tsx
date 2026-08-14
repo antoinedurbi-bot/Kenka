@@ -75,10 +75,7 @@ export function NutritionTab() {
             Calibrer
           </button>
         </div>
-        <p className="mt-2 text-xs leading-relaxed text-bone-600">
-          Le maintien se mesure, il ne se calcule pas. L'app le déduit de tes apports et de la
-          dérive de poids observée sur la même période.
-        </p>
+        <p className="mt-2 text-xs text-bone-600">Mesuré depuis tes apports et ta dérive de poids, pas calculé.</p>
       </Panel>
 
       {recal.available && (
@@ -265,10 +262,7 @@ function QuickEntry() {
         </div>
       </div>
 
-      <p className="mt-2.5 text-[11px] leading-relaxed text-bone-600">
-        Pesée à jeun, après les toilettes. L'apport n'est utile que pendant une calibration — le
-        reste du temps, la pesée suffit.
-      </p>
+      <p className="mt-2.5 text-[11px] text-bone-600">Pesée à jeun, après les toilettes.</p>
     </Panel>
   );
 }

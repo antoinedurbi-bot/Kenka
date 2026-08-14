@@ -30,11 +30,7 @@ export function SkillsTab() {
         />
       </section>
 
-      <p className="text-xs leading-relaxed text-bone-600">
-        L'app ne peut pas juger une technique. Chaque palier se valide à la main, honnêtement —
-        idéalement confirmé par un partenaire ou le coach. L'ordre suit la difficulté, mais rien
-        n'empêche de valider un palier plus loin si c'est déjà acquis.
-      </p>
+      <p className="text-xs text-bone-600">Chaque palier se valide à la main, honnêtement.</p>
 
       <SectionTitle>Branches</SectionTitle>
       <div className="space-y-4">

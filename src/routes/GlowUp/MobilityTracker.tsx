@@ -15,11 +15,7 @@ export function MobilityTracker() {
   return (
     <div className="space-y-4">
       <SectionTitle>Repères mesurés</SectionTitle>
-      <p className="-mt-3 text-xs leading-relaxed text-bone-600">
-        La mobilité progresse trop lentement pour se juger au ressenti. Relever ces repères une
-        fois par mois, toujours à chaud et de la même façon — sinon c'est le protocole qui varie,
-        pas la souplesse.
-      </p>
+      <p className="-mt-3 text-xs text-bone-600">Un relevé par mois, toujours à chaud, même protocole.</p>
 
       {MOBILITY_METRICS.map((def) => {
         const series = logs.filter((l) => l.metric === def.metric);

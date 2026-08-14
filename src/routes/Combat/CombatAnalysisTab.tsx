@@ -28,11 +28,7 @@ export function CombatAnalysisTab() {
   return (
     <div className="space-y-5">
       <SectionTitle>Ce qui est réellement travaillé</SectionTitle>
-      <p className="-mt-3 text-xs leading-relaxed text-bone-600">
-        Une technique est comptée par séance, pas par occurrence : c'est la régularité qui crée
-        un automatisme. Frapper est gratifiant, se placer et esquiver ne le sont pas — ce sont
-        pourtant ces deux-là qui tiennent sous pression.
-      </p>
+      <p className="-mt-3 text-xs text-bone-600">Compté par séance, pas par occurrence.</p>
 
       <div className="flex gap-1">
         {WINDOWS.map((w) => (
