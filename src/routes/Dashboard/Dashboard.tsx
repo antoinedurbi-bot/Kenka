@@ -12,6 +12,8 @@ import { physiqueLevel, skillsLevel } from "../../lib/progression";
 import { computeBadges } from "../../lib/badges";
 import { currentWeekCount, weeklyStreak } from "../../lib/streaks";
 import { readiness } from "../../lib/readiness";
+import { adherence } from "../../lib/adherence";
+import type { AdherenceReport } from "../../lib/adherence";
 import { volumeReport } from "../../lib/volume";
 import { PageHeader } from "../../components/layout/Shell";
 import { Bar, Panel, SectionTitle, Tag } from "../../components/ui";
@@ -47,6 +49,14 @@ export function Dashboard() {
   const combatDates = combat.map((c) => c.date);
   // La régularité nutrition se lit désormais sur les pesées, pas sur un check-in à ressaisir.
   const nutritionDates = dailyWeights.map((w) => w.date);
+
+  // Comparé au plan réel de l'utilisateur, pas à un objectif générique : un
+  // split de trois séances tenu à 100 % vaut mieux qu'un split de six tenu à 40 %.
+  const adherenceReport = adherence(
+    split,
+    physiqueOn ? workoutDates : [],
+    combatOn ? combatDates : [],
+  );
 
   const load = readiness(workouts, combat);
   const volume = volumeReport(sets, exercises, 28);
@@ -151,6 +161,7 @@ export function Dashboard() {
       {(physiqueOn || combatOn) && (
         <section className="mt-7">
           <SectionTitle>Régularité</SectionTitle>
+          <AdherencePanel report={adherenceReport} />
           <Panel className="mb-3 px-3 py-3">
             <TrainingCalendar
               workoutDates={physiqueOn ? workoutDates : []}
@@ -287,6 +298,65 @@ export function Dashboard() {
         </section>
       )}
     </>
+  );
+}
+
+const ADHERENCE_TONE: Record<AdherenceReport["verdict"], { tag: "neutral" | "blood" | "gold" | "jade"; bar: string; border: string }> = {
+  insuffisant: { tag: "neutral", bar: "bg-ink-600", border: "border-l-ink-600" },
+  decroche: { tag: "blood", bar: "bg-blood-500", border: "border-l-blood-500" },
+  irregulier: { tag: "gold", bar: "bg-gold-400", border: "border-l-gold-400" },
+  tenu: { tag: "jade", bar: "bg-jade-400", border: "border-l-jade-400" },
+};
+
+/**
+ * Le seul écran de l'app qui puisse contredire l'utilisateur. Il est
+ * volontairement placé avant le calendrier et les séries : une grille bien
+ * remplie et une série de 6 semaines peuvent coexister avec un plan tenu à
+ * moitié, et c'est précisément ce qu'on ne voulait plus laisser passer.
+ */
+function AdherencePanel({ report }: { report: AdherenceReport }) {
+  const tone = ADHERENCE_TONE[report.verdict];
+  const ready = report.verdict !== "insuffisant";
+
+  return (
+    <Panel className={clsx("mb-3 border-l-2 px-3 py-3", tone.border)}>
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="k-label">Prévu vs réel — {report.windowWeeks} semaines</div>
+        {ready && (
+          <span className="font-mono text-sm tabular-nums text-bone-50">
+            {Math.round(report.rate * 100)} %
+          </span>
+        )}
+      </div>
+
+      {ready && (
+        <div className="mt-2 h-1 w-full bg-ink-800">
+          <div className={clsx("h-full", tone.bar)} style={{ width: `${report.rate * 100}%` }} />
+        </div>
+      )}
+
+      <div className="mt-2.5 flex items-center gap-2">
+        <Tag tone={tone.tag}>{report.headline}</Tag>
+        {report.extra > 0 && <Tag tone="jade">+{report.extra} hors plan</Tag>}
+      </div>
+
+      <p className="mt-2 text-xs leading-relaxed text-bone-400">{report.detail}</p>
+
+      {ready && (
+        <div className="mt-2.5 flex gap-4 font-mono text-[10px] tabular-nums text-bone-600">
+          {report.plannedMuscu > 0 && (
+            <span>
+              MUSCU {report.doneMuscu}/{report.plannedMuscu}
+            </span>
+          )}
+          {report.plannedCombat > 0 && (
+            <span>
+              COMBAT {report.doneCombat}/{report.plannedCombat}
+            </span>
+          )}
+        </div>
+      )}
+    </Panel>
   );
 }
 

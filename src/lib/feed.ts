@@ -7,6 +7,7 @@ import type {
   WorkoutSetLog,
 } from "../db/types";
 import { daysBetween, isoDay } from "./dates";
+import { historyByExercise, isPlateaued, lastSessionOf } from "./exerciseHistory";
 import { nextTarget, repRange } from "./records";
 import { ZONE_LABELS } from "./volume";
 import type { VolumeReport } from "./volume";
@@ -137,50 +138,6 @@ export function buildFeed(input: FeedInput): FeedCard[] {
  * Cartes issues des données
  * ------------------------------------------------------------------ */
 
-interface ExerciseHistory {
-  lastDate?: string;
-  sessions: string[];
-  sets: WorkoutSetLog[];
-  topWeightKg?: number;
-  topReps?: number;
-}
-
-/** Historique par exercice, calculé une fois pour tous les générateurs. */
-export function historyByExercise(sets: WorkoutSetLog[]): Map<number, ExerciseHistory> {
-  const out = new Map<number, ExerciseHistory>();
-  for (const s of sets) {
-    const h = out.get(s.exerciseId) ?? { sessions: [], sets: [] };
-    h.sets.push(s);
-    if (!h.sessions.includes(s.date)) h.sessions.push(s.date);
-    if (!h.lastDate || s.date > h.lastDate) h.lastDate = s.date;
-    out.set(s.exerciseId, h);
-  }
-  for (const h of out.values()) {
-    h.sessions.sort();
-    const lastSets = h.sets.filter((s) => s.date === h.lastDate);
-    h.topWeightKg = Math.max(0, ...lastSets.map((s) => s.weightKg ?? 0)) || undefined;
-    h.topReps = Math.max(0, ...lastSets.map((s) => s.reps ?? 0)) || undefined;
-  }
-  return out;
-}
-
-/**
- * Stagnation lue en mémoire : trois dernières séances à charge identique et à
- * volume de répétitions identique. C'est la version sans requête de
- * `detectPlateau`, pour pouvoir juger tous les exercices d'un coup.
- */
-function plateaued(h: ExerciseHistory): boolean {
-  const dates = h.sessions.slice(-3);
-  if (dates.length < 3) return false;
-  const tops = dates.map((d) =>
-    Math.max(0, ...h.sets.filter((s) => s.date === d).map((s) => s.weightKg ?? 0)),
-  );
-  const reps = dates.map((d) =>
-    h.sets.filter((s) => s.date === d).reduce((n, s) => n + (s.reps ?? 0), 0),
-  );
-  return tops.every((t) => t === tops[0]) && reps.every((r) => r === reps[0]);
-}
-
 /**
  * Exercices qui stagnent, ou qui ont atteint le haut de leur fourchette : les
  * deux cas où la prochaine séance doit être différente de la précédente.
@@ -198,16 +155,12 @@ function leverCards(input: FeedInput, today: string): FeedCard[] {
     // Un exercice abandonné n'a pas de plateau à débloquer : il a un autre problème.
     if (daysBetween(h.lastDate, today) > STALE_EXERCISE_DAYS) continue;
 
-    const stuck = plateaued(h);
+    const stuck = isPlateaued(h);
     const [, high] = repRange(ex.defaultReps);
     const atCeiling = (h.topReps ?? 0) >= high;
     if (!stuck && !atCeiling) continue;
 
-    const target = nextTarget(
-      ex,
-      { sets: h.sets.filter((s) => s.date === h.lastDate), topWeightKg: h.topWeightKg, topReps: h.topReps },
-      stuck,
-    );
+    const target = nextTarget(ex, lastSessionOf(h), stuck);
 
     out.push({
       id: `levier-${ex.id}`,

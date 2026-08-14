@@ -15,7 +15,9 @@ import {
   sessionMinutes,
   usePersistedDraft,
 } from "../../lib/sessionDraft";
-import { exerciseRecords, recordsBeatenBy, RECORD_LABELS } from "../../lib/records";
+import { exerciseRecords, nextTarget, recordsBeatenBy, RECORD_LABELS } from "../../lib/records";
+import type { NextTarget } from "../../lib/records";
+import { historyByExercise, isPlateaued, lastSessionOf } from "../../lib/exerciseHistory";
 import { demoSearchUrl } from "../../lib/videoDemo";
 import type { ExerciseRecords } from "../../lib/records";
 import { summarizeSession } from "../../lib/sessionSummary";
@@ -92,6 +94,30 @@ export function SessionScreen() {
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseIds, allSets.length]);
+
+  /*
+   * Objectif chiffré par exercice, calculé à l'ouverture.
+   *
+   * C'est ce qui sépare un carnet d'un programme : jusqu'ici l'écran rappelait
+   * la dernière performance et laissait décider sur place — donc au feeling,
+   * donc en refaisant la même chose. Ici la décision est déjà prise avant
+   * d'arriver à l'exercice.
+   *
+   * Figé comme les records : recalculer pendant la séance ferait bouger la
+   * cible au moment où on essaie de l'atteindre.
+   */
+  const targets = useMemo(() => {
+    const hist = historyByExercise(allSets);
+    const map = new Map<number, NextTarget>();
+    for (const ex of draft?.exercises ?? []) {
+      const def = byId.get(ex.exerciseId);
+      if (!def) continue;
+      const h = hist.get(ex.exerciseId);
+      map.set(ex.exerciseId, nextTarget(def, lastSessionOf(h), h ? isPlateaued(h) : false));
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exerciseIds, allSets.length, byId]);
 
   if (loading || !draft) {
     return (
@@ -212,6 +238,7 @@ export function SessionScreen() {
               exercise={exercise}
               draft={ex}
               last={history.get(ex.exerciseId)}
+              target={targets.get(ex.exerciseId)}
               records={baseRecords.get(ex.exerciseId)}
               onChange={(next) => setExercise(i, next)}
               onRemove={() =>
@@ -405,6 +432,7 @@ function ExerciseCard({
   exercise,
   draft,
   last,
+  target,
   records,
   onChange,
   onRemove,
@@ -413,6 +441,7 @@ function ExerciseCard({
   exercise: Exercise;
   draft: DraftExercise;
   last?: LastPerformance;
+  target?: NextTarget;
   records?: ExerciseRecords;
   onChange: (d: DraftExercise) => void;
   onRemove: () => void;
@@ -423,6 +452,50 @@ function ExerciseCard({
 
   const setSet = (i: number, patch: Partial<DraftExercise["sets"][number]>) =>
     onChange({ ...draft, sets: draft.sets.map((s, j) => (j === i ? { ...s, ...patch } : s)) });
+
+  // Une prescription n'est applicable que si elle porte des chiffres : « changer
+  // de levier » se lit, ne se remplit pas.
+  const applicable = target?.reps !== undefined;
+
+  /**
+   * Remplit les séries encore vides avec l'objectif. Les séries déjà validées ou
+   * déjà saisies ne bougent pas : écraser une valeur réellement effectuée par la
+   * valeur visée transformerait le journal en liste de souhaits.
+   */
+  const applyTarget = () => {
+    if (!applicable) return;
+    const count = target!.sets ?? draft.sets.length;
+    const filled = draft.sets.map((s) =>
+      s.done || s.reps || s.weightKg
+        ? s
+        : {
+            ...s,
+            reps: String(target!.reps),
+            weightKg: target!.weightKg !== undefined ? String(target!.weightKg) : s.weightKg,
+          },
+    );
+    // L'objectif peut demander plus de séries que le brouillon n'en contient.
+    while (filled.length < count) {
+      filled.push({
+        reps: String(target!.reps),
+        weightKg: target!.weightKg !== undefined ? String(target!.weightKg) : "",
+        done: false,
+      });
+    }
+    onChange({ ...draft, sets: filled });
+    hapticTap();
+  };
+
+  // Objectif atteint : au moins une série validée à la hauteur demandée. On juge
+  // sur les séries faites, jamais sur ce qui est simplement tapé dans le champ.
+  const targetMet =
+    applicable &&
+    draft.sets.some(
+      (s) =>
+        s.done &&
+        Number(s.reps) >= target!.reps! &&
+        (target!.weightKg === undefined || Number(s.weightKg || 0) >= target!.weightKg),
+    );
 
   const toggleDone = (i: number) => {
     const set = draft.sets[i];
@@ -476,6 +549,43 @@ function ExerciseCard({
         </button>
       </div>
 
+      {target && (
+        <div
+          className={clsx(
+            "flex items-center gap-2 border-b px-2.5 py-2",
+            targetMet ? "border-ink-800 bg-jade-400/[0.07]" : "border-ink-800 bg-gold-400/[0.05]",
+          )}
+        >
+          <span className="k-label shrink-0 text-bone-600">Objectif</span>
+          <span
+            className={clsx(
+              "min-w-0 flex-1 font-mono text-[11px] tabular-nums",
+              targetMet ? "text-jade-400" : "text-gold-400",
+            )}
+          >
+            {target.headline}
+          </span>
+          {targetMet ? (
+            <Tag tone="jade">Atteint</Tag>
+          ) : (
+            applicable && (
+              <button
+                onClick={applyTarget}
+                className="shrink-0 border border-gold-400/40 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-gold-400 active:bg-gold-400/10"
+              >
+                Remplir
+              </button>
+            )
+          )}
+        </div>
+      )}
+
+      {target && !applicable && (
+        <p className="border-b border-ink-800 px-2.5 pb-2 text-[10px] leading-relaxed text-bone-500">
+          {target.detail}
+        </p>
+      )}
+
       <div className="space-y-2 px-2.5 py-2.5">
         <div className="flex flex-wrap items-center gap-2">
           {exercise.defaultReps && <Tag>{exercise.defaultReps}</Tag>}
@@ -498,8 +608,12 @@ function ExerciseCard({
 
         {draft.sets.map((s, i) => {
           const prev = last?.sets[i];
+          // Uniquement sur les séries validées. Depuis que « Remplir » écrit
+          // l'objectif dans les champs, un badge posé sur une valeur simplement
+          // présente annoncerait trois records d'un coup avant que la première
+          // série n'ait été faite.
           const beaten =
-            records && (s.reps || s.weightKg)
+            records && s.done && (s.reps || s.weightKg)
               ? recordsBeatenBy(
                   {
                     reps: s.reps ? Number(s.reps) : undefined,
