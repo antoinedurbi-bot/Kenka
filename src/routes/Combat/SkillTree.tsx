@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
 import clsx from "clsx";
 import { db } from "../../db/db";
 import type { CombatCategory, CombatCheckpoint, CombatSkill } from "../../db/types";
 import { isoDay, prettyDate } from "../../lib/dates";
-import { Field, Modal } from "../../components/ui";
+import { Field, Modal, Tag } from "../../components/ui";
 
 const CATEGORY_GLYPH: Record<CombatCategory, string> = {
   clinch: "組",
@@ -141,6 +142,8 @@ export function SkillTree({
         </ol>
       </div>
 
+      <AssessmentHistory skillId={skill.id!} />
+
       <div className="border-t border-ink-800 px-3 py-2.5">
         <button
           className="k-btn-ghost w-full !text-[10px]"
@@ -151,6 +154,68 @@ export function SkillTree({
       </div>
 
       <AssessModal skill={skill} open={assessing} onClose={() => setAssessing(false)} />
+    </div>
+  );
+}
+
+/**
+ * Les auto-évaluations étaient écrites puis jamais relues : aucune trace après
+ * l'enregistrement, donc aucun moyen de voir si le ressenti progresse. C'est
+ * pourtant la seule mesure disponible sur une branche technique — l'app ne
+ * peut pas juger un mouvement à la place de l'utilisateur.
+ */
+function AssessmentHistory({ skillId }: { skillId: number }) {
+  const assessments =
+    useLiveQuery(
+      () => db.combatAssessments.where("skillId").equals(skillId).sortBy("date"),
+      [skillId],
+    ) ?? [];
+
+  if (assessments.length === 0) return null;
+
+  const latest = assessments[assessments.length - 1];
+  const previous = assessments.length > 1 ? assessments[assessments.length - 2] : undefined;
+  const delta = previous ? latest.level - previous.level : undefined;
+  const max = LEVEL_LABELS.length - 1;
+
+  return (
+    <div className="border-t border-ink-800 px-3 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="k-label">Ressenti</span>
+        <span className="font-mono text-[10px] tabular-nums text-bone-600">
+          {assessments.length} évaluation{assessments.length > 1 ? "s" : ""}
+        </span>
+      </div>
+
+      <div className="mt-1.5 flex items-baseline gap-2">
+        <span className="font-display text-sm uppercase tracking-[0.04em] text-bone-50">
+          {LEVEL_LABELS[latest.level]}
+        </span>
+        {delta !== undefined && delta !== 0 && (
+          <Tag tone={delta > 0 ? "jade" : "blood"}>
+            {delta > 0 ? "+" : ""}
+            {delta}
+          </Tag>
+        )}
+      </div>
+
+      {/* Une barre par évaluation, dans l'ordre chronologique : la forme de la
+          suite dit tout de suite si le ressenti monte, stagne ou redescend. */}
+      <div className="mt-2.5 flex items-end gap-[3px]" aria-hidden>
+        {assessments.slice(-14).map((a) => (
+          <span
+            key={a.id}
+            className="flex-1 bg-steel-400"
+            style={{ height: `${6 + (a.level / max) * 26}px` }}
+            title={`${prettyDate(a.date)} — ${LEVEL_LABELS[a.level]}`}
+          />
+        ))}
+      </div>
+
+      <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-bone-600">
+        Dernière : {prettyDate(latest.date)}
+      </div>
+      {latest.notes && <p className="mt-1.5 text-xs text-bone-400">{latest.notes}</p>}
     </div>
   );
 }

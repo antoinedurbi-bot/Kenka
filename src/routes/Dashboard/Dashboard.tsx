@@ -16,6 +16,7 @@ import { volumeReport } from "../../lib/volume";
 import { PageHeader } from "../../components/layout/Shell";
 import { Bar, Panel, SectionTitle, Tag } from "../../components/ui";
 import { DataSafetyBanner } from "../../components/DataSafetyBanner";
+import { TrainingCalendar } from "../../components/charts/TrainingCalendar";
 import { KanjiSeal } from "../../components/illustrations/Motifs";
 import { LevelCard } from "./LevelCard";
 import { MonthlyReview } from "./MonthlyReview";
@@ -150,6 +151,13 @@ export function Dashboard() {
       {(physiqueOn || combatOn) && (
         <section className="mt-7">
           <SectionTitle>Régularité</SectionTitle>
+          <Panel className="mb-3 px-3 py-3">
+            <TrainingCalendar
+              workoutDates={physiqueOn ? workoutDates : []}
+              combatDates={combatOn ? combatDates : []}
+              showCombat={combatOn}
+            />
+          </Panel>
           <Panel className="divide-y divide-ink-800">
             {physiqueOn && (
               <StreakRow

@@ -191,6 +191,14 @@ export function SessionScreen() {
           <span className="font-mono text-[10px] tabular-nums text-bone-600">
             {doneSets}/{totalSets}
           </span>
+          {/* Tonnage en direct : le compteur de séries dit où on en est dans la
+              liste, pas ce qui a déjà été soulevé. C'est ce chiffre-là qui rend
+              une séance en cours tangible, pas seulement une checklist. */}
+          {summary.tonnageKg > 0 && (
+            <span className="font-mono text-[10px] tabular-nums text-blood-300">
+              {summary.tonnageKg} kg
+            </span>
+          )}
         </div>
       </header>
 

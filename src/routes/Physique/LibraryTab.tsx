@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { db } from "../../db/db";
 import type { Exercise, MuscleZone, TrainingType } from "../../db/types";
 import { Empty, Field, Modal, Panel, SectionTitle, Tag } from "../../components/ui";
+import { fold, matches } from "../../lib/search";
 import { ExerciseDetail } from "./ExerciseDetail";
 
 const ZONES: MuscleZone[] = [
@@ -55,9 +56,11 @@ export function LibraryTab() {
   const [adding, setAdding] = useState(false);
   const [detail, setDetail] = useState<Exercise | null>(null);
 
-  const needle = query.trim().toLowerCase();
+  // Même repli d'accents que le sélecteur de séance, et la zone est cherchable
+  // aussi : taper « epaules » ici doit donner le même résultat qu'y filtrer.
+  const needle = fold(query.trim());
   const filtered = exercises.filter((e) => {
-    if (needle && !e.name.toLowerCase().includes(needle)) return false;
+    if (!matches(needle, e.name, ...e.zones)) return false;
     if (type !== "tous" && e.type !== type) return false;
     if (zone === "priorite") return e.priority === "primaire";
     if (zone !== "toutes" && !e.zones.includes(zone)) return false;

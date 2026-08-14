@@ -2,13 +2,7 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 import type { Exercise } from "../../db/types";
 import { Modal, Tag } from "../../components/ui";
-
-/** Recherche insensible aux accents : « elevation » doit trouver « Élévations latérales ». */
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+import { fold } from "../../lib/search";
 
 /**
  * Sélecteur d'exercice.

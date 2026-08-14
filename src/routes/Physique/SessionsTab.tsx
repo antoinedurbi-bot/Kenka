@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import clsx from "clsx";
 import { db } from "../../db/db";
-import type { WorkoutLog } from "../../db/types";
+import type { WorkoutLog, WorkoutSetLog } from "../../db/types";
 import { SPLIT_LABELS } from "../../lib/split";
 import { prettyDate } from "../../lib/dates";
 import { draftFilledSets } from "../../lib/sessionDraft";
@@ -17,6 +17,19 @@ const FEELINGS = [
   { value: 4, label: "Bon" },
   { value: 5, label: "Fort" },
 ] as const;
+
+/**
+ * Tonnage = Σ charge × répétitions. Les séries au poids du corps n'y entrent
+ * pas : leur compter un tonnage de 0 serait faux, leur inventer un poids le
+ * serait aussi — le nombre de séries les représente déjà.
+ */
+function summarizeSets(sets: WorkoutSetLog[]) {
+  let tonnage = 0;
+  for (const s of sets) {
+    if (s.weightKg && s.weightKg > 0 && s.reps) tonnage += s.weightKg * s.reps;
+  }
+  return { sets: sets.length, tonnageKg: Math.round(tonnage) };
+}
 
 export function SessionsTab() {
   const [logging, setLogging] = useState(false);
@@ -74,12 +87,17 @@ export function SessionsTab() {
 
 function LogRow({ log }: { log: WorkoutLog }) {
   const [open, setOpen] = useState(false);
+  // Le résumé (séries, tonnage) se charge pour chaque ligne, ouverte ou non :
+  // une ligne d'historique sans chiffre ne dit rien du travail fourni, et
+  // c'est justement ce qu'on vient regarder.
   const sets = useLiveQuery(
-    () => (open ? db.workoutSets.where("workoutLogId").equals(log.id!).toArray() : []),
-    [open, log.id],
+    () => db.workoutSets.where("workoutLogId").equals(log.id!).toArray(),
+    [log.id],
   );
   const exercises = useLiveQuery(() => db.exercises.toArray(), []) ?? [];
   const nameOf = (id: number) => exercises.find((e) => e.id === id)?.name ?? "Exercice";
+
+  const summary = sets && sets.length > 0 ? summarizeSets(sets) : undefined;
 
   return (
     <div className="px-3 py-2.5">
@@ -100,6 +118,19 @@ function LogRow({ log }: { log: WorkoutLog }) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {summary && (
+            <div className="text-right">
+              <div className="font-mono text-sm tabular-nums leading-none text-bone-50">
+                {summary.sets}
+                <span className="ml-0.5 text-[10px] text-bone-600">séries</span>
+              </div>
+              {summary.tonnageKg > 0 && (
+                <div className="mt-1 font-mono text-[10px] tabular-nums leading-none text-bone-600">
+                  {summary.tonnageKg} kg
+                </div>
+              )}
+            </div>
+          )}
           {!log.completed && <Tag tone="neutral">Ratée</Tag>}
           {log.feeling && (
             <Tag tone={log.feeling >= 4 ? "jade" : log.feeling <= 2 ? "blood" : "neutral"}>

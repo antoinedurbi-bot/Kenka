@@ -53,47 +53,51 @@ export function DataSafetyBanner() {
 
   if (!evictionRisk && !backupStale) return null;
 
-  return (
-    <div className="mb-4 space-y-2">
-      {evictionRisk && (
-        <div className="border border-blood-600 bg-blood-900/25 px-3 py-2.5">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="font-display text-xs uppercase tracking-[0.1em] text-bone-50">
-                Installe l'app avant d'y mettre tes données
-              </div>
-              <p className="mt-1 text-[11px] leading-relaxed text-bone-200">
-                Sur iPhone, Safari efface le stockage d'un site non installé après quelques jours
-                sans visite. Partager → « Sur l'écran d'accueil » supprime ce risque.
-              </p>
-            </div>
-            <button
-              onClick={() => setDismissedInstall(true)}
-              aria-label="Masquer cet avertissement"
-              className="shrink-0 px-1 font-mono text-bone-400"
-            >
-              ×
-            </button>
+  /*
+   * Un seul bandeau à la fois, le plus urgent. Les deux empilés poussaient tout
+   * le contenu du tableau de bord sous la ligne de flottaison à chaque
+   * ouverture — et deux alertes affichées ensemble se lisent comme du décor,
+   * plus comme des alertes.
+   *
+   * L'éviction passe devant : elle fait perdre les données sans prévenir,
+   * alors qu'une sauvegarde en retard laisse encore le temps d'agir.
+   */
+  if (evictionRisk) {
+    return (
+      <div className="mb-4 flex items-start justify-between gap-2 border border-blood-600 bg-blood-900/25 px-3 py-2.5">
+        <div>
+          <div className="font-display text-xs uppercase tracking-[0.1em] text-bone-50">
+            Installe l'app pour ne pas perdre tes données
           </div>
-        </div>
-      )}
-
-      {backupStale && (
-        <Link
-          to="/reglages"
-          className="block border border-ink-700 bg-ink-900 px-3 py-2.5 transition-colors hover:border-ink-600"
-        >
-          <div className="font-display text-xs uppercase tracking-[0.1em] text-gold-400">
-            Sauvegarde à faire
-          </div>
-          <p className="mt-1 text-[11px] leading-relaxed text-bone-400">
-            {backupAge === undefined
-              ? "Aucune sauvegarde exportée. Tout vit uniquement dans ce navigateur."
-              : `Dernier export il y a ${backupAge} jours.`}{" "}
-            Exporter depuis les Réglages.
+          <p className="mt-1 text-[11px] text-bone-200">
+            Safari efface le stockage d'un site non installé. Partager → « Sur l'écran d'accueil ».
           </p>
-        </Link>
-      )}
-    </div>
+        </div>
+        <button
+          onClick={() => setDismissedInstall(true)}
+          aria-label="Masquer cet avertissement"
+          className="shrink-0 px-1 font-mono text-bone-400"
+        >
+          ×
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      to="/reglages"
+      className="mb-4 block border border-ink-700 bg-ink-900 px-3 py-2.5 transition-colors hover:border-ink-600"
+    >
+      <div className="font-display text-xs uppercase tracking-[0.1em] text-gold-400">
+        Sauvegarde à faire
+      </div>
+      <p className="mt-1 text-[11px] text-bone-400">
+        {backupAge === undefined
+          ? "Aucune sauvegarde exportée."
+          : `Dernier export il y a ${backupAge} jours.`}{" "}
+        Exporter depuis les Réglages.
+      </p>
+    </Link>
   );
 }
