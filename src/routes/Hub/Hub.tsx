@@ -30,6 +30,18 @@ const BASE_TILE = {
 
 const NO_EXERCISES: Exercise[] = [];
 
+/**
+ * Placée juste après « Base » : c'est l'entrée sans objectif précis — celle
+ * qu'on prend quand on ouvre l'app sans savoir quoi y faire. Sans elle, ces
+ * ouvertures-là se terminaient par une fermeture immédiate.
+ */
+const FEED_TILE = {
+  to: "/decouvrir",
+  label: "Découvrir",
+  kanji: "発",
+  blurb: "Constats, exercices à tester, principes — un par écran.",
+};
+
 const CHAT_TILE = {
   to: "/chat",
   label: "Chat",
@@ -58,6 +70,7 @@ export function Hub() {
 
   const tiles = [
     BASE_TILE,
+    FEED_TILE,
     ...SECTIONS.filter((s) => enabled.includes(s.id)).map((s) => ({
       to: SECTION_PATH[s.id],
       label: s.label,

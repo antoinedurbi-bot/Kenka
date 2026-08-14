@@ -17,6 +17,7 @@ import { Photos } from "./routes/Photos/Photos";
 import { GlowUp } from "./routes/GlowUp/GlowUp";
 import { Settings } from "./routes/Settings/Settings";
 import { Chat } from "./routes/Chat/Chat";
+import { Feed } from "./routes/Feed/Feed";
 import { SessionScreen } from "./routes/Session/SessionScreen";
 
 /**
@@ -65,6 +66,9 @@ export default function App() {
       {/* Le hub est le passage obligé à chaque ouverture, hors du Shell : il
           n'a ni bouton retour ni bandeau réglages, seulement le choix. */}
       <Route index element={<Hub />} />
+      {/* Hors du Shell également : le défilement calé plein écran ne supporte
+          pas une barre fixe au-dessus. */}
+      <Route path="decouvrir" element={<Feed />} />
       <Route element={<Shell />}>
         <Route path="base" element={<Dashboard />} />
         <Route
