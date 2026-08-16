@@ -130,7 +130,8 @@
   .k-btn-danger {
     @apply inline-flex items-center justify-center gap-2 border px-4 py-2.5
            font-display text-sm uppercase tracking-[0.12em] transition-colors
-           select-none active:translate-y-px disabled:opacity-40;
+           select-none transition-transform active:translate-y-px active:scale-[0.99]
+           disabled:opacity-40;
   }
 
   .k-btn-primary {
@@ -246,6 +247,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Le retour d'appui est un signal, pas une décoration — mais il reste une
+     transformation, donc il tombe avec le reste. */
+  .k-btn,
+  .k-btn-primary,
+  .k-btn-ghost,
+  .k-btn-danger {
+    transition: none !important;
+  }
+
   .k-anim-in,
   .k-anim-pop,
   .k-anim-pulse,

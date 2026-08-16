@@ -13,6 +13,8 @@ import { useSetting } from "../../lib/useSetting";
 import { isoDay } from "../../lib/dates";
 import { KanjiSeal } from "../../components/illustrations/Motifs";
 import { Empty } from "../../components/ui";
+import { Spotlight } from "../../components/ui/motion";
+import { motion, useInView, useReducedMotion } from "motion/react";
 import { ExerciseDetail } from "../Physique/ExerciseDetail";
 
 /**
@@ -79,6 +81,7 @@ export function Feed() {
 
   return (
     <div className="relative mx-auto h-dvh max-w-md overflow-hidden bg-ink-950">
+      <Spotlight className="z-10" />
       <header className="safe-top absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-ink-950 via-ink-950/90 to-transparent px-5 pb-6 pt-4">
         <Link
           to="/"
@@ -162,9 +165,15 @@ function FeedCardView({
   onOpenExercise: (id: number) => void;
 }) {
   const navigate = useNavigate();
+  const ref = useRef<HTMLElement>(null);
+  const reduced = useReducedMotion();
+  // Déclenchée à mi-écran : la carte est déjà calée quand le contenu apparaît,
+  // donc l'animation accompagne l'arrivée au lieu de la précéder.
+  const inView = useInView(ref, { amount: 0.5 });
 
   return (
     <article
+      ref={ref}
       className="relative flex h-dvh snap-start flex-col justify-center px-6 pb-20 pt-20"
       data-kind={card.kind}
     >
@@ -174,7 +183,12 @@ function FeedCardView({
         className="pointer-events-none absolute -right-10 top-16 h-56 w-56 opacity-[0.06]"
       />
 
-      <div className="relative">
+      <motion.div
+        className="relative"
+        initial={reduced ? false : { opacity: 0, y: 14 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0.25, y: 14 }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      >
         <div className="flex items-center gap-2">
           <span className={clsx("font-display text-lg", KIND_ACCENT[card.kind])} aria-hidden>
             {card.kanji}
@@ -220,7 +234,7 @@ function FeedCardView({
             Masquer
           </button>
         </div>
-      </div>
+      </motion.div>
 
       <span
         className="pointer-events-none absolute inset-x-0 bottom-8 text-center font-mono text-[10px] tracking-[0.16em] text-bone-700"

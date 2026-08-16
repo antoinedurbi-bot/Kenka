@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
+import { motion, useReducedMotion } from "motion/react";
 
 /**
  * Une fois entré dans une section depuis le hub, il n'y a plus de barre du
@@ -9,13 +10,25 @@ import type { ReactNode } from "react";
  */
 export function Shell() {
   const { pathname } = useLocation();
+  const reduced = useReducedMotion();
 
   return (
     <div className="relative mx-auto flex min-h-dvh max-w-3xl flex-col">
       <TopBar />
-      <main key={pathname} className="flex-1 px-4 pb-10 pt-4">
+      {/*
+        La clé sur `pathname` remonte le contenu à chaque changement de section :
+        c'est ce qui rend la transition possible, et c'est aussi ce qui remet le
+        défilement en haut d'écran quand on change de section.
+      */}
+      <motion.main
+        key={pathname}
+        initial={reduced ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+        className="flex-1 px-4 pb-10 pt-4"
+      >
         <Outlet />
-      </main>
+      </motion.main>
     </div>
   );
 }

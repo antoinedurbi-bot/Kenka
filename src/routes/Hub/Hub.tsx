@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import type { CSSProperties } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link, useNavigate } from "react-router-dom";
 import clsx from "clsx";
@@ -20,6 +19,9 @@ import { isoDay } from "../../lib/dates";
 import { useCoachingContext, dailyTip } from "../../lib/coaching";
 import { KanjiSeal } from "../../components/illustrations/Motifs";
 import { Tag } from "../../components/ui";
+import { BorderBeam, Spotlight } from "../../components/ui/motion";
+import { usePressScale } from "../../components/ui/motionHooks";
+import { motion } from "motion/react";
 
 const BASE_TILE = {
   to: "/base",
@@ -81,8 +83,9 @@ export function Hub() {
   ];
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5 py-8">
-      <div className="mb-7 flex items-center justify-between">
+    <div className="relative mx-auto flex min-h-dvh max-w-md flex-col px-5 py-8">
+      <Spotlight />
+      <div className="relative mb-7 flex items-center justify-between">
         <div className="flex items-baseline gap-2">
           <span className="font-display text-xl tracking-[0.2em] text-bone-50">KENKA</span>
           <span className="font-mono text-[10px] tracking-[0.16em] text-blood-500">喧嘩</span>
@@ -133,35 +136,58 @@ export function Hub() {
 
       <p className="mb-3 text-sm leading-relaxed text-bone-400">Qu'est-ce qu'on fait ?</p>
 
-      <div className="flex-1 space-y-2.5">
+      <div className="relative flex-1 space-y-2.5">
         {tiles.map((tile, i) => (
-          <Link
-            key={tile.to}
-            to={tile.to}
-            style={{ "--k-stagger": i } as CSSProperties}
-            className={clsx(
-              "k-anim-in relative flex items-center gap-4 overflow-hidden border border-ink-700 bg-ink-950 px-4 py-4 transition-colors active:border-blood-500 active:bg-blood-900/20",
-            )}
-          >
-            <KanjiSeal
-              kanji={tile.kanji}
-              color="#c8323f"
-              className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 opacity-[0.08]"
-            />
-            <span className="font-display text-2xl text-blood-400" aria-hidden>
-              {tile.kanji}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-base text-bone-50">{tile.label}</span>
-              <span className="mt-0.5 block text-xs leading-snug text-bone-600">{tile.blurb}</span>
-            </span>
-            <span className="font-mono text-bone-600" aria-hidden>
-              →
-            </span>
-          </Link>
+          <TileLink key={tile.to} tile={tile} index={i} />
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * La cascade d'entrée est calée sur l'ordre de lecture : 40 ms par tuile,
+ * assez pour que l'œil suive la liste de haut en bas, trop court pour qu'on
+ * attende quoi que ce soit avant de pouvoir taper.
+ */
+function TileLink({
+  tile,
+  index,
+}: {
+  tile: { to: string; label: string; kanji: string; blurb: string };
+  index: number;
+}) {
+  const press = usePressScale();
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: 0.04 * index, ease: [0.16, 1, 0.3, 1] }}
+      {...press}
+    >
+      <Link
+        to={tile.to}
+        className={clsx(
+          "relative flex items-center gap-4 overflow-hidden border border-ink-700 bg-ink-950 px-4 py-4 transition-colors active:border-blood-500 active:bg-blood-900/20",
+        )}
+      >
+        <KanjiSeal
+          kanji={tile.kanji}
+          color="#c8323f"
+          className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 opacity-[0.08]"
+        />
+        <span className="font-display text-2xl text-blood-400" aria-hidden>
+          {tile.kanji}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-base text-bone-50">{tile.label}</span>
+          <span className="mt-0.5 block text-xs leading-snug text-bone-600">{tile.blurb}</span>
+        </span>
+        <span className="font-mono text-bone-600" aria-hidden>
+          →
+        </span>
+      </Link>
+    </motion.div>
   );
 }
 
@@ -206,7 +232,11 @@ function TodaySessionCard({ physiqueOn, combatOn }: { physiqueOn: boolean; comba
   };
 
   return (
-    <div className="k-anim-in mb-5 border border-ink-700 bg-ink-950 px-4 py-5">
+    <div className="k-anim-in relative mb-5 border border-ink-700 bg-ink-950 px-4 py-5">
+      {/* Un seul faisceau dans toute l'app, et seulement quand il y a
+          effectivement une séance à lancer : c'est le geste que l'écran
+          existe pour provoquer. */}
+      {isMuscuDay && planned.length > 0 && <BorderBeam />}
       <div className="k-label text-blood-500">Aujourd'hui</div>
       <div className="mt-1 font-display text-2xl uppercase tracking-[0.04em] text-bone-50">
         {SPLIT_LABELS[splitDay]}

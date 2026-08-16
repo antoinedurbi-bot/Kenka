@@ -17,6 +17,7 @@ import type { AdherenceReport } from "../../lib/adherence";
 import { volumeReport } from "../../lib/volume";
 import { PageHeader } from "../../components/layout/Shell";
 import { Bar, Panel, SectionTitle, Tag } from "../../components/ui";
+import { NumberTicker, ProgressRing } from "../../components/ui/motion";
 import { DataSafetyBanner } from "../../components/DataSafetyBanner";
 import { TrainingCalendar } from "../../components/charts/TrainingCalendar";
 import { KanjiSeal } from "../../components/illustrations/Motifs";
@@ -301,11 +302,14 @@ export function Dashboard() {
   );
 }
 
-const ADHERENCE_TONE: Record<AdherenceReport["verdict"], { tag: "neutral" | "blood" | "gold" | "jade"; bar: string; border: string }> = {
-  insuffisant: { tag: "neutral", bar: "bg-ink-600", border: "border-l-ink-600" },
-  decroche: { tag: "blood", bar: "bg-blood-500", border: "border-l-blood-500" },
-  irregulier: { tag: "gold", bar: "bg-gold-400", border: "border-l-gold-400" },
-  tenu: { tag: "jade", bar: "bg-jade-400", border: "border-l-jade-400" },
+const ADHERENCE_TONE: Record<
+  AdherenceReport["verdict"],
+  { tag: "neutral" | "blood" | "gold" | "jade"; ring: string; border: string }
+> = {
+  insuffisant: { tag: "neutral", ring: "#4a453f", border: "border-l-ink-600" },
+  decroche: { tag: "blood", ring: "#a52633", border: "border-l-blood-500" },
+  irregulier: { tag: "gold", ring: "#c8933f", border: "border-l-gold-400" },
+  tenu: { tag: "jade", ring: "#6f9c78", border: "border-l-jade-400" },
 };
 
 /**
@@ -320,27 +324,28 @@ function AdherencePanel({ report }: { report: AdherenceReport }) {
 
   return (
     <Panel className={clsx("mb-3 border-l-2 px-3 py-3", tone.border)}>
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="k-label">Prévu vs réel — {report.windowWeeks} semaines</div>
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="k-label">Prévu vs réel — {report.windowWeeks} semaines</div>
+          <div className="mt-2.5 flex items-center gap-2">
+            <Tag tone={tone.tag}>{report.headline}</Tag>
+            {report.extra > 0 && <Tag tone="jade">+{report.extra} hors plan</Tag>}
+          </div>
+        </div>
+
+        {/* L'anneau porte le seul chiffre qui résume l'écran ; le texte
+            en dessous explique, il n'a pas à le répéter en gros. */}
         {ready && (
-          <span className="font-mono text-sm tabular-nums text-bone-50">
-            {Math.round(report.rate * 100)} %
-          </span>
+          <ProgressRing value={report.rate} size={58} stroke={3} color={tone.ring}>
+            <span className="font-mono text-[13px] tabular-nums text-bone-50">
+              <NumberTicker value={Math.round(report.rate * 100)} />
+              <span className="text-[9px] text-bone-600"> %</span>
+            </span>
+          </ProgressRing>
         )}
       </div>
 
-      {ready && (
-        <div className="mt-2 h-1 w-full bg-ink-800">
-          <div className={clsx("h-full", tone.bar)} style={{ width: `${report.rate * 100}%` }} />
-        </div>
-      )}
-
-      <div className="mt-2.5 flex items-center gap-2">
-        <Tag tone={tone.tag}>{report.headline}</Tag>
-        {report.extra > 0 && <Tag tone="jade">+{report.extra} hors plan</Tag>}
-      </div>
-
-      <p className="mt-2 text-xs leading-relaxed text-bone-400">{report.detail}</p>
+      <p className="mt-2.5 text-xs leading-relaxed text-bone-400">{report.detail}</p>
 
       {ready && (
         <div className="mt-2.5 flex gap-4 font-mono text-[10px] tabular-nums text-bone-600">

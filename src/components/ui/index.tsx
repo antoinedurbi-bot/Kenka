@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { AnimatedBar, NumberTicker } from "./motion";
 
 export function Panel({
   children,
@@ -48,11 +49,20 @@ export function Stat({
     gold: "text-gold-400",
   }[tone];
 
+  /*
+   * Un chiffre qui monte se lit ; un chiffre posé se survole. Comme `Stat` est
+   * utilisé partout, l'animation est branchée ici une seule fois plutôt que
+   * réécrite écran par écran — et uniquement quand la valeur est réellement
+   * numérique : « — » ou « +0.25 kg/sem » ne s'animent pas.
+   */
+  const numeric = typeof value === "number" ? value : undefined;
+  const decimals = numeric !== undefined && !Number.isInteger(numeric) ? 1 : 0;
+
   return (
     <div className="border border-ink-700 bg-ink-900 px-3 py-3">
       <div className="k-label">{label}</div>
       <div className={clsx("mt-1.5 font-mono text-2xl leading-none tabular-nums", toneClass)}>
-        {value}
+        {numeric !== undefined ? <NumberTicker value={numeric} decimals={decimals} /> : value}
         {unit && <span className="ml-1 text-xs text-bone-600">{unit}</span>}
       </div>
     </div>
@@ -69,14 +79,9 @@ export function Bar({
   className?: string;
 }) {
   const bg = { blood: "bg-blood-500", steel: "bg-steel-400", jade: "bg-jade-400" }[tone];
-  return (
-    <div className={clsx("h-1 w-full bg-ink-800", className)}>
-      <div
-        className={clsx("h-full transition-[width] duration-500", bg)}
-        style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }}
-      />
-    </div>
-  );
+  // Le remplissage part de zéro à l'affichage : une barre déjà pleine à
+  // l'arrivée ne dit pas combien elle vaut, elle dit seulement qu'elle existe.
+  return <AnimatedBar value={value} className={className} barClassName={bg} />;
 }
 
 export function Field({
